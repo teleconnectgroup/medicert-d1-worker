@@ -1,4 +1,4 @@
-name = "medshein-db"
+name = "medschein-db"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
 upload_source_maps = true
@@ -8,8 +8,8 @@ enabled = true
 
 [[d1_databases]]
 binding = "DB"
-database_id = "151f7d9b-365f-41d7-83ed-0bf4eeef5086"
-database_name = "d1-template-database"
+database_id = "907b1a12-f24c-4b6d-b4ce-a64dbc3623e4"
+database_name = "medschein"
 
 # Optional Smart Placement
 # [placement]
