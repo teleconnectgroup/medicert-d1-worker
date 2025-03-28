@@ -83,12 +83,18 @@ async function handleGetOneOrder(id, env) {
 
 async function handleCreateOrder(request, env) {
   const data = await request.json();
+
+  // 🛠 Fix: make sure formData is stored as a JSON string
+  const formData = typeof data.formData === 'object'
+    ? JSON.stringify(data.formData)
+    : data.formData;
+
   await env.DB.prepare(
     `INSERT INTO orders (orderId, formData, amount, currency, paymentIntentId, paymentMethod, paymentStatus, createdAt)
      VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).bind(
     data.orderId,
-    data.formData,
+    formData,
     data.amount,
     data.currency || 'EUR',
     data.paymentIntentId,
@@ -99,8 +105,14 @@ async function handleCreateOrder(request, env) {
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 }
 
+
 async function handleUpdateOrder(id, request, env) {
   const data = await request.json();
+
+  const formData = typeof data.formData === 'object'
+    ? JSON.stringify(data.formData)
+    : data.formData;
+
   await env.DB.prepare(
     `UPDATE orders SET
       orderId = ?, formData = ?, amount = ?, currency = ?,
@@ -108,7 +120,7 @@ async function handleUpdateOrder(id, request, env) {
      WHERE id = ?`
   ).bind(
     data.orderId,
-    data.formData,
+    formData,
     data.amount,
     data.currency,
     data.paymentIntentId,
