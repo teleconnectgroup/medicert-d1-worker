@@ -1,4 +1,4 @@
-name = "medschein-db"
+name = "medshein-db"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
 upload_source_maps = true
