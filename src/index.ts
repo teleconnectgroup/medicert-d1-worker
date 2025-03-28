@@ -54,8 +54,6 @@ export default {
         return handleDeleteAdmin(id, env);
       }
 
-      // Admin login is now handled by Express, skip here
-
       return new Response('Not Found', { status: 404, headers: corsHeaders });
     } catch (err) {
       return new Response(`Error: ${err.message}`, { status: 500, headers: corsHeaders });
@@ -77,63 +75,88 @@ async function handleGetAllOrders(env) {
 }
 
 async function handleGetOneOrder(id, env) {
-  const result = await env.DB.prepare('SELECT * FROM orders WHERE id = ?').bind(id).first();
+  const result = await env.DB.prepare('SELECT * FROM orders WHERE orderId = ?').bind(id).first();
   return new Response(JSON.stringify(result), { headers: corsHeaders });
 }
 
 async function handleCreateOrder(request, env) {
   const data = await request.json();
 
-  // 🛠 Fix: make sure formData is stored as a JSON string
-  const formData = typeof data.formData === 'object'
-    ? JSON.stringify(data.formData)
-    : data.formData;
+  const orderId = data?.orderId ?? '';
+  const formData = data?.formData
+    ? typeof data.formData === 'object'
+      ? JSON.stringify(data.formData)
+      : data.formData
+    : '';
+  const amount = data?.amount ?? 0;
+  const currency = data?.currency ?? 'EUR';
+  const paymentIntentId = data?.paymentIntentId ?? '';
+  const paymentMethod = data?.paymentMethod ?? '';
+  const paymentStatus = data?.paymentStatus ?? 'pending';
 
   await env.DB.prepare(
     `INSERT INTO orders (orderId, formData, amount, currency, paymentIntentId, paymentMethod, paymentStatus, createdAt)
      VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).bind(
-    data.orderId,
+    orderId,
     formData,
-    data.amount,
-    data.currency || 'EUR',
-    data.paymentIntentId,
-    data.paymentMethod,
-    data.paymentStatus || 'pending'
+    amount,
+    currency,
+    paymentIntentId,
+    paymentMethod,
+    paymentStatus
   ).run();
 
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 }
 
-
 async function handleUpdateOrder(id, request, env) {
   const data = await request.json();
 
-  const formData = typeof data.formData === 'object'
-    ? JSON.stringify(data.formData)
-    : data.formData;
+  const orderId = data?.orderId ?? '';
 
-  await env.DB.prepare(
-    `UPDATE orders SET
-      orderId = ?, formData = ?, amount = ?, currency = ?,
-      paymentIntentId = ?, paymentMethod = ?, paymentStatus = ?, updatedAt = CURRENT_TIMESTAMP
-     WHERE id = ?`
-  ).bind(
-    data.orderId,
-    formData,
-    data.amount,
-    data.currency,
-    data.paymentIntentId,
-    data.paymentMethod,
-    data.paymentStatus,
-    id
-  ).run();
+  const formData = data?.formData
+    ? typeof data.formData === 'object'
+      ? JSON.stringify(data.formData)
+      : data.formData
+    : '';
+
+  const amount = data?.amount ?? 0;
+  const currency = data?.currency ?? 'EUR';
+  const paymentIntentId = data?.paymentIntentId ?? '';
+  const paymentMethod = data?.paymentMethod ?? '';
+  const paymentStatus = data?.paymentStatus ?? 'pending';
+
+  if (formData) {
+    await env.DB.prepare(
+      `UPDATE orders SET formData = ?, amount = ?, paymentStatus = ?, paymentMethod = ?, updatedAt = CURRENT_TIMESTAMP
+       WHERE orderId = ?`
+    ).bind(
+      formData,
+      amount,
+      paymentStatus,
+      paymentMethod,
+      id
+    ).run();
+  } else {
+    await env.DB.prepare(
+      `UPDATE orders SET amount = ?, paymentStatus = ?, paymentMethod = ?, updatedAt = CURRENT_TIMESTAMP
+       WHERE orderId = ?`
+    ).bind(
+      amount,
+      paymentStatus,
+      paymentMethod,
+      id
+    ).run();
+  }
+
+  
 
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 }
 
 async function handleDeleteOrder(id, env) {
-  await env.DB.prepare('DELETE FROM orders WHERE id = ?').bind(id).run();
+  await env.DB.prepare('DELETE FROM orders WHERE orderId = ?').bind(id).run();
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 }
 
@@ -153,8 +176,8 @@ async function handleCreateAdmin(request, env) {
   await env.DB.prepare(
     `INSERT INTO admin (userName, password) VALUES (?, ?)`
   ).bind(
-    data.userName,
-    data.password // Password already hashed in Express
+    data.userName ?? '',
+    data.password ?? ''
   ).run();
 
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
@@ -165,8 +188,8 @@ async function handleUpdateAdmin(id, request, env) {
   await env.DB.prepare(
     `UPDATE admin SET userName = ?, password = ? WHERE id = ?`
   ).bind(
-    data.userName,
-    data.password, // Already hashed
+    data.userName ?? '',
+    data.password ?? '',
     id
   ).run();
 
