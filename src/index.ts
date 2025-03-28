@@ -121,33 +121,39 @@ async function handleUpdateOrder(id, request, env) {
       : data.formData
     : '';
 
-  const amount = data?.amount ?? 0;
-  const currency = data?.currency ?? 'EUR';
-  const paymentIntentId = data?.paymentIntentId ?? '';
-  const paymentMethod = data?.paymentMethod ?? '';
-  const paymentStatus = data?.paymentStatus ?? 'pending';
+  const amount = data?.amount;
+  const currency = data?.currency;
+  const paymentIntentId = data?.paymentIntentId;
+  const paymentMethod = data?.paymentMethod;
+  const paymentStatus = data?.paymentStatus;
+
+  const fieldsToUpdate: string[] = [];
+  const values: any[] = [];
 
   if (formData) {
-    await env.DB.prepare(
-      `UPDATE orders SET formData = ?, amount = ?, paymentStatus = ?, paymentMethod = ?, updatedAt = CURRENT_TIMESTAMP
-       WHERE orderId = ?`
-    ).bind(
-      formData,
-      amount,
-      paymentStatus,
-      paymentMethod,
-      id
-    ).run();
-  } else {
-    await env.DB.prepare(
-      `UPDATE orders SET amount = ?, paymentStatus = ?, paymentMethod = ?, updatedAt = CURRENT_TIMESTAMP
-       WHERE orderId = ?`
-    ).bind(
-      amount,
-      paymentStatus,
-      paymentMethod,
-      id
-    ).run();
+    fieldsToUpdate.push('formData = ?');
+    values.push(formData);
+  }
+  if (amount !== undefined) {
+    fieldsToUpdate.push('amount = ?');
+    values.push(amount);
+  }
+  if (paymentStatus) {
+    fieldsToUpdate.push('paymentStatus = ?');
+    values.push(paymentStatus);
+  }
+  if (paymentMethod) {
+    fieldsToUpdate.push('paymentMethod = ?');
+    values.push(paymentMethod);
+  }
+
+  if (fieldsToUpdate.length > 0) {
+    fieldsToUpdate.push('updatedAt = CURRENT_TIMESTAMP');
+    values.push(id);
+
+    const query = `UPDATE orders SET ${fieldsToUpdate.join(', ')} WHERE orderId = ?`;
+
+    await env.DB.prepare(query).bind(...values).run();
   }
 
   
