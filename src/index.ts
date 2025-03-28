@@ -138,6 +138,10 @@ async function handleUpdateOrder(id, request, env) {
     fieldsToUpdate.push('amount = ?');
     values.push(amount);
   }
+  if (paymentIntentId) {
+    fieldsToUpdate.push('paymentIntentId = ?');
+    values.push(paymentIntentId);
+  }
   if (paymentStatus) {
     fieldsToUpdate.push('paymentStatus = ?');
     values.push(paymentStatus);
@@ -146,6 +150,7 @@ async function handleUpdateOrder(id, request, env) {
     fieldsToUpdate.push('paymentMethod = ?');
     values.push(paymentMethod);
   }
+
 
   if (fieldsToUpdate.length > 0) {
     fieldsToUpdate.push('updatedAt = CURRENT_TIMESTAMP');
