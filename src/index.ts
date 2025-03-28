@@ -1,7 +1,5 @@
 // src/index.js
 
-import { hash, compare } from 'bcryptjs';
-
 export default {
   async fetch(request, env, ctx) {
     const { method, url } = request;
@@ -56,9 +54,7 @@ export default {
         return handleDeleteAdmin(id, env);
       }
 
-      if (pathname === '/admin/login' && method === 'POST') {
-        return handleAdminLogin(request, env);
-      }
+      // Admin login is now handled by Express, skip here
 
       return new Response('Not Found', { status: 404, headers: corsHeaders });
     } catch (err) {
@@ -88,8 +84,8 @@ async function handleGetOneOrder(id, env) {
 async function handleCreateOrder(request, env) {
   const data = await request.json();
   await env.DB.prepare(
-    `INSERT INTO orders (orderId, formData, amount, currency, paymentIntentId, paymentMethod, paymentStatus)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO orders (orderId, formData, amount, currency, paymentIntentId, paymentMethod, paymentStatus, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).bind(
     data.orderId,
     data.formData,
@@ -142,13 +138,11 @@ async function handleGetOneAdmin(id, env) {
 
 async function handleCreateAdmin(request, env) {
   const data = await request.json();
-  const hashedPassword = await hash(data.password, 10);
-
   await env.DB.prepare(
     `INSERT INTO admin (userName, password) VALUES (?, ?)`
   ).bind(
     data.userName,
-    hashedPassword
+    data.password // Password already hashed in Express
   ).run();
 
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
@@ -156,13 +150,11 @@ async function handleCreateAdmin(request, env) {
 
 async function handleUpdateAdmin(id, request, env) {
   const data = await request.json();
-  const hashedPassword = await hash(data.password, 10);
-
   await env.DB.prepare(
     `UPDATE admin SET userName = ?, password = ? WHERE id = ?`
   ).bind(
     data.userName,
-    hashedPassword,
+    data.password, // Already hashed
     id
   ).run();
 
@@ -172,26 +164,4 @@ async function handleUpdateAdmin(id, request, env) {
 async function handleDeleteAdmin(id, env) {
   await env.DB.prepare('DELETE FROM admin WHERE id = ?').bind(id).run();
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-}
-
-async function handleAdminLogin(request, env) {
-  const data = await request.json();
-  const record = await env.DB.prepare('SELECT * FROM admin WHERE userName = ?').bind(data.userName).first();
-
-  if (!record) {
-    return new Response(JSON.stringify({ error: 'Invalid username or password' }), {
-      status: 401,
-      headers: corsHeaders,
-    });
-  }
-
-  const valid = await compare(data.password, record.password);
-  if (!valid) {
-    return new Response(JSON.stringify({ error: 'Invalid username or password' }), {
-      status: 401,
-      headers: corsHeaders,
-    });
-  }
-
-  return new Response(JSON.stringify({ success: true, adminId: record.id }), { headers: corsHeaders });
 }
