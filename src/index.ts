@@ -173,19 +173,19 @@ async function handleDeleteOrder(id, env) {
 
 // Admins handlers
 async function handleGetAllAdmins(env) {
-  const { results } = await env.DB.prepare('SELECT id, userName FROM admin').all();
+  const { results } = await env.DB.prepare('SELECT id, userName FROM admins').all();
   return new Response(JSON.stringify(results), { headers: corsHeaders });
 }
 
 async function handleGetOneAdmin(id, env) {
-  const result = await env.DB.prepare('SELECT id, userName FROM admin WHERE id = ?').bind(id).first();
+  const result = await env.DB.prepare('SELECT id, userName FROM admins WHERE id = ?').bind(id).first();
   return new Response(JSON.stringify(result), { headers: corsHeaders });
 }
 
 async function handleCreateAdmin(request, env) {
   const data = await request.json();
   await env.DB.prepare(
-    `INSERT INTO admin (userName, password) VALUES (?, ?)`
+    `INSERT INTO admins (userName, password) VALUES (?, ?)`
   ).bind(
     data.userName ?? '',
     data.password ?? ''
@@ -197,7 +197,7 @@ async function handleCreateAdmin(request, env) {
 async function handleUpdateAdmin(id, request, env) {
   const data = await request.json();
   await env.DB.prepare(
-    `UPDATE admin SET userName = ?, password = ? WHERE id = ?`
+    `UPDATE admins SET userName = ?, password = ? WHERE id = ?`
   ).bind(
     data.userName ?? '',
     data.password ?? '',
@@ -208,6 +208,6 @@ async function handleUpdateAdmin(id, request, env) {
 }
 
 async function handleDeleteAdmin(id, env) {
-  await env.DB.prepare('DELETE FROM admin WHERE id = ?').bind(id).run();
+  await env.DB.prepare('DELETE FROM admins WHERE id = ?').bind(id).run();
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 }
