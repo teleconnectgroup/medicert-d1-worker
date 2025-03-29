@@ -1,4 +1,4 @@
-CREATE TABLE "admin" (
+CREATE TABLE "admins" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "userName" TEXT NOT NULL UNIQUE,
   "password" TEXT NOT NULL

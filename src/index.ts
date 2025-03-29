@@ -173,7 +173,7 @@ async function handleDeleteOrder(id, env) {
 
 // Admins handlers
 async function handleGetAllAdmins(env) {
-  const { results } = await env.DB.prepare('SELECT id, userName FROM admins').all();
+  const { results } = await env.DB.prepare('SELECT id, userName, password FROM admins').all();
   return new Response(JSON.stringify(results), { headers: corsHeaders });
 }
 
