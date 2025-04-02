@@ -126,6 +126,7 @@ async function handleUpdateOrder(id, request, env) {
   const paymentIntentId = data?.paymentIntentId;
   const paymentMethod = data?.paymentMethod;
   const paymentStatus = data?.paymentStatus;
+  const paypalCaptureId = data?.paypalCaptureId;
 
   const fieldsToUpdate: string[] = [];
   const values: any[] = [];
@@ -149,6 +150,10 @@ async function handleUpdateOrder(id, request, env) {
   if (paymentMethod) {
     fieldsToUpdate.push('paymentMethod = ?');
     values.push(paymentMethod);
+  }
+  if (paypalCaptureId) {
+    fieldsToUpdate.push('paypalCaptureId = ?');
+    values.push(paypalCaptureId);
   }
 
 
