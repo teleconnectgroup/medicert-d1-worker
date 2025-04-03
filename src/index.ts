@@ -33,8 +33,30 @@ export default {
         const id = pathname.split('/')[2];
         return handleDeleteOrder(id, env);
       }
+      if (pathname === '/refunds/today' && method === 'GET') {
+        console.log('GET /refunds/today');
+        return handleGetTodayRefundCount(env);
+      }
+
+      if (pathname === '/refunds') {
+        if (method === 'GET') return handleGetAllRefunds(env);
+        if (method === 'POST') return handleCreateRefund(request, env);
+      }
+
+      if (pathname.startsWith('/refunds/') && method === 'GET') {
+        const id = pathname.split('/')[2];
+        return handleGetOneRefund(id, env);
+      }
+
+      if (pathname.startsWith('/refunds/') && method === 'DELETE') {
+        const id = pathname.split('/')[2];
+        return handleDeleteRefund(id, env);
+      }
+
+      
 
       if (pathname === '/admins') {
+        console.log('GET /admins');
         if (method === 'GET') return handleGetAllAdmins(env);
         if (method === 'POST') return handleCreateAdmin(request, env);
       }
@@ -166,7 +188,7 @@ async function handleUpdateOrder(id, request, env) {
     await env.DB.prepare(query).bind(...values).run();
   }
 
-  
+
 
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 }
@@ -176,9 +198,86 @@ async function handleDeleteOrder(id, env) {
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 }
 
+// Refunds handlers
+async function handleGetAllRefunds(env) {
+  const { results } = await env.DB.prepare('SELECT * FROM refunds ORDER BY refunded_at DESC').all();
+  return new Response(JSON.stringify(results), { headers: corsHeaders });
+}
+
+async function handleGetOneRefund(id, env) {
+  const result = await env.DB.prepare('SELECT * FROM refunds WHERE id = ?').bind(id).first();
+  return new Response(JSON.stringify(result), { headers: corsHeaders });
+}
+
+async function handleCreateRefund(request, env) {
+  const data = await request.json();
+
+  const orderId = data.orderId ?? '';
+  const refundedBy = data.refundedBy ?? 0;
+  const reason = data.reason ?? '';
+  const paypalRefundId = data.paypalRefundId ?? '';
+
+  // Check limit
+  const countResult = await env.DB.prepare(`
+    SELECT COUNT(*) as count
+    FROM refunds
+    WHERE DATE(refunded_at) = DATE('now')
+  `).first();
+
+  const refundCount = countResult?.count ?? 0;
+  if (refundCount >= 10) {
+    return new Response(
+      JSON.stringify({ success: false, message: 'Daily refund limit reached.' }),
+      { status: 403, headers: corsHeaders }
+    );
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO refunds (order_id, refunded_by, reason, paypal_refund_id, refunded_at)
+     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`
+  ).bind(orderId, refundedBy, reason, paypalRefundId).run();
+
+  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+}
+
+
+async function handleDeleteRefund(id, env) {
+  await env.DB.prepare('DELETE FROM refunds WHERE id = ?').bind(id).run();
+  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+}
+
+
+async function handleGetTodayRefundCount(env) {
+  const row = await env.DB.prepare(`
+    SELECT COUNT(*) as count
+    FROM refunds
+    WHERE DATE(refunded_at) = DATE('now')
+  `).first();
+  console.log(row);
+  let refundCount = 0;
+  let limitReached = false;
+
+  if (!row) {
+    refundCount = 0;
+    limitReached = false;
+  } else {
+    refundCount = row?.count ?? 0;
+    limitReached = refundCount >= 10;
+  }
+
+
+  return new Response(
+    JSON.stringify({ refundCount, limitReached }),
+    { headers: corsHeaders }
+  );
+}
+
+
+
 // Admins handlers
 async function handleGetAllAdmins(env) {
-  const { results } = await env.DB.prepare('SELECT id, userName, password FROM admins').all();
+  const { results } = await env.DB.prepare('SELECT * FROM admins').all();
+  console.log(results);
   return new Response(JSON.stringify(results), { headers: corsHeaders });
 }
 
