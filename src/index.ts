@@ -217,20 +217,6 @@ async function handleCreateRefund(request, env) {
   const reason = data.reason ?? '';
   const paypalRefundId = data.paypalRefundId ?? '';
 
-  // Check limit
-  const countResult = await env.DB.prepare(`
-    SELECT COUNT(*) as count
-    FROM refunds
-    WHERE DATE(refunded_at) = DATE('now')
-  `).first();
-
-  const refundCount = countResult?.count ?? 0;
-  if (refundCount >= 10) {
-    return new Response(
-      JSON.stringify({ success: false, message: 'Daily refund limit reached.' }),
-      { status: 403, headers: corsHeaders }
-    );
-  }
 
   await env.DB.prepare(
     `INSERT INTO refunds (order_id, refunded_by, reason, paypal_refund_id, refunded_at)
