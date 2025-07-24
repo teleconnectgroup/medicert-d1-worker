@@ -248,7 +248,7 @@ async function handleGetTodayRefundCount(env) {
     limitReached = false;
   } else {
     refundCount = row?.count ?? 0;
-    limitReached = refundCount >= 10;
+    limitReached = refundCount >= 20;
   }
 
 
