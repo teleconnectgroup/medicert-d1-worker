@@ -55,7 +55,7 @@ export default {
 
       if (pathname === '/doctors') {
         console.log('GET /doctors');
-        // if (method === 'GET') return handleGetAllAdmins(env);
+        if (method === 'GET') return handleGetAllDoctors(env);
         if (method === 'POST') return handleCreateDoctor(request, env);
       }
 
@@ -279,6 +279,12 @@ async function handleCreateDoctor(request, env) {
   ).run();
 
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+}
+
+async function handleGetAllDoctors(env) {
+  const { results } = await env.DB.prepare('SELECT * FROM doctors').all();
+  console.log(results);
+  return new Response(JSON.stringify(results), { headers: corsHeaders });
 }
 
 
