@@ -53,7 +53,11 @@ export default {
         return handleDeleteRefund(id, env);
       }
 
-      
+      if (pathname === '/doctors') {
+        console.log('GET /doctors');
+        // if (method === 'GET') return handleGetAllAdmins(env);
+        if (method === 'POST') return handleCreateDoctor(request, env);
+      }
 
       if (pathname === '/admins') {
         console.log('GET /admins');
@@ -258,6 +262,24 @@ async function handleGetTodayRefundCount(env) {
   );
 }
 
+//doctors handlers
+
+async function handleCreateDoctor(request, env) {
+  const data = await request.json();
+  await env.DB.prepare(
+    `INSERT INTO doctors (firstname, lastname, phone, email, signature, userName, password) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    data.firstname ?? '',
+    data.lastname ?? '',
+    data.phone ?? '',
+    data.email ?? '',
+    data.signature ?? '',
+    data.userName ?? '',
+    data.password ?? ''
+  ).run();
+
+  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+}
 
 
 // Admins handlers
