@@ -59,6 +59,11 @@ export default {
         if (method === 'POST') return handleCreateDoctor(request, env);
       }
 
+      if (pathname.startsWith('/doctors/') && method === 'PUT') {
+        const id = pathname.split('/')[2];
+        return handleUpdateDoctor(id, request, env);
+      }
+
       if (pathname === '/admins') {
         console.log('GET /admins');
         if (method === 'GET') return handleGetAllAdmins(env);
@@ -285,6 +290,18 @@ async function handleGetAllDoctors(env) {
   const { results } = await env.DB.prepare('SELECT * FROM doctors').all();
   console.log(results);
   return new Response(JSON.stringify(results), { headers: corsHeaders });
+}
+
+async function handleUpdateDoctor(id, request, env) {
+  const data = await request.json();
+  await env.DB.prepare(
+    `UPDATE doctors SET signature = ? WHERE id = ?`
+  ).bind(
+    data.signature ?? '',
+    id
+  ).run();
+
+  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 }
 
 
