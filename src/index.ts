@@ -297,7 +297,7 @@ async function handleUpdateDoctor(request, env) {
     `UPDATE doctors SET signature = ? WHERE id = ?`
   ).bind(
     data.signature ?? '',
-    id
+    data.doctor_id ?? '',
   ).run();
 
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
