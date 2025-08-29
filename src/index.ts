@@ -59,9 +59,8 @@ export default {
         if (method === 'POST') return handleCreateDoctor(request, env);
       }
 
-      if (pathname.startsWith('/doctors/') && method === 'PUT') {
-        const id = pathname.split('/')[2];
-        return handleUpdateDoctor(id, request, env);
+      if (pathname.startsWith('/doctors/signature') && method === 'PUT') {
+        return handleUpdateDoctor(request, env);
       }
 
       if (pathname === '/admins') {
@@ -292,7 +291,7 @@ async function handleGetAllDoctors(env) {
   return new Response(JSON.stringify(results), { headers: corsHeaders });
 }
 
-async function handleUpdateDoctor(id, request, env) {
+async function handleUpdateDoctor(request, env) {
   const data = await request.json();
   await env.DB.prepare(
     `UPDATE doctors SET signature = ? WHERE id = ?`
