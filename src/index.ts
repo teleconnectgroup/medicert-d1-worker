@@ -63,6 +63,13 @@ export default {
         return handleUpdateDoctor(request, env);
       }
 
+      if (pathname.startsWith('/doctors/') && method === 'PUT' && !pathname.startsWith('/doctors/signature')) {
+        const id = pathname.split('/')[2];
+        return await handleUpdateDoctorInfo(id, request, env);
+      }
+
+      //doctors ends
+
       if (pathname === '/admins') {
         console.log('GET /admins');
         if (method === 'GET') return handleGetAllAdmins(env);
@@ -303,9 +310,53 @@ async function handleGetAllDoctors(env) {
 //   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 // }
 
-async function handleUpdateDoctor(request, env) {
+async function handleUpdateDoctorInfo(id, request, env) {
   try {
-    // Strictly require JSON for this route (matches your Express fetch)
+    const ct = request.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      return new Response(JSON.stringify({ error: 'Content-Type must be application/json' }), { status: 415, headers: corsHeaders });
+    }
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: corsHeaders });
+    }
+
+    // only allow these fields to be updated
+    const allow = ['firstname','lastname','phone','email','userName','password'];
+    const fields = [];
+    const values = [];
+    for (const k of allow) {
+      if (body[k] !== undefined && body[k] !== null) {
+        fields.push(`${k} = ?`);
+        values.push(body[k]);
+      }
+    }
+
+    if (fields.length === 0) {
+      return new Response(JSON.stringify({ error: 'No updatable fields provided' }), { status: 400, headers: corsHeaders });
+    }
+
+    fields.push('updatedAt = CURRENT_TIMESTAMP');
+    values.push(Number(id));
+
+    const sql = `UPDATE doctors SET ${fields.join(', ')} WHERE doctor_id = ?`;
+    const res = await env.DB.prepare(sql).bind(...values).run();
+
+    if (!res?.meta || res.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'Doctor not found' }), { status: 404, headers: corsHeaders });
+    }
+    return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+  } catch (e) {
+    console.error('handleUpdateDoctorInfo failed:', e);
+    return new Response(JSON.stringify({ error: 'UPDATE_DOCTOR_FAILED' }), { status: 500, headers: corsHeaders });
+  }
+}
+
+async function handleUpdateDoctor(request, env) {
+
+  try {
     const ct = request.headers.get('content-type') || '';
     if (!ct.includes('application/json')) {
       return new Response(JSON.stringify({ error: 'Content-Type must be application/json' }), {
@@ -332,7 +383,6 @@ async function handleUpdateDoctor(request, env) {
       });
     }
 
-    // Coerce doctor_id to number if it’s a string
     if (typeof doctor_id === 'string' && doctor_id.trim() !== '') {
       const n = Number(doctor_id);
       if (Number.isNaN(n)) {
@@ -344,7 +394,6 @@ async function handleUpdateDoctor(request, env) {
       doctor_id = n;
     }
 
-    // Quick binding sanity (will throw if DB not bound)
     if (!env.DB?.prepare) throw new Error('D1 binding "DB" missing on this environment');
 
     const res = await env.DB
@@ -362,7 +411,6 @@ async function handleUpdateDoctor(request, env) {
 
     return new Response(JSON.stringify({ success: true, changed }), { headers: corsHeaders });
   } catch (e) {
-    // This prevents 1101 and lets your Express proxy return a real JSON error
     console.error('handleUpdateDoctor failed:', e?.stack || e);
     return new Response(
       JSON.stringify({ error: 'UPDATE_SIGNATURE_FAILED', detail: String(e?.message || e) }),
