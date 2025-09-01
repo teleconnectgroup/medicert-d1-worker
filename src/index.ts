@@ -64,8 +64,8 @@ export default {
       }
 
       if (pathname.startsWith('/doctors/') && method === 'PUT' && !pathname.startsWith('/doctors/signature')) {
-        const id = pathname.split('/')[2];
-        return await handleUpdateDoctorInfo(id, request, env);
+        const doctorId = Number(pathname.split('/')[2]);
+        return handleUpdateDoctorInfo(doctorId, request, env);
       }
 
       //doctors ends
@@ -310,12 +310,13 @@ async function handleGetAllDoctors(env) {
 //   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 // }
 
-async function handleUpdateDoctorInfo(id, request, env) {
+async function handleUpdateDoctorInfo(doctorId, request, env) {
   try {
     const ct = request.headers.get('content-type') || '';
     if (!ct.includes('application/json')) {
       return new Response(JSON.stringify({ error: 'Content-Type must be application/json' }), { status: 415, headers: corsHeaders });
     }
+
     let body;
     try {
       body = await request.json();
@@ -323,10 +324,11 @@ async function handleUpdateDoctorInfo(id, request, env) {
       return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: corsHeaders });
     }
 
-    // only allow these fields to be updated
+    // allow only existing columns
     const allow = ['firstname','lastname','phone','email','userName','password'];
     const fields = [];
     const values = [];
+
     for (const k of allow) {
       if (body[k] !== undefined && body[k] !== null) {
         fields.push(`${k} = ?`);
@@ -338,8 +340,12 @@ async function handleUpdateDoctorInfo(id, request, env) {
       return new Response(JSON.stringify({ error: 'No updatable fields provided' }), { status: 400, headers: corsHeaders });
     }
 
-    fields.push('updatedAt = CURRENT_TIMESTAMP');
-    values.push(Number(id));
+    const idNum = Number(doctorId);
+    if (Number.isNaN(idNum)) {
+      return new Response(JSON.stringify({ error: 'doctor_id must be a number' }), { status: 400, headers: corsHeaders });
+    }
+
+    values.push(idNum);
 
     const sql = `UPDATE doctors SET ${fields.join(', ')} WHERE doctor_id = ?`;
     const res = await env.DB.prepare(sql).bind(...values).run();
@@ -347,7 +353,8 @@ async function handleUpdateDoctorInfo(id, request, env) {
     if (!res?.meta || res.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Doctor not found' }), { status: 404, headers: corsHeaders });
     }
-    return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+
+    return new Response(JSON.stringify({ success: true, changed: res.meta.changes }), { headers: corsHeaders });
   } catch (e) {
     console.error('handleUpdateDoctorInfo failed:', e);
     return new Response(JSON.stringify({ error: 'UPDATE_DOCTOR_FAILED' }), { status: 500, headers: corsHeaders });
