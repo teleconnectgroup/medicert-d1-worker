@@ -291,16 +291,84 @@ async function handleGetAllDoctors(env) {
   return new Response(JSON.stringify(results), { headers: corsHeaders });
 }
 
-async function handleUpdateDoctor(request, env) {
-  const data = await request.json();
-  await env.DB.prepare(
-    `UPDATE doctors SET signature = ? WHERE doctor_id = ?`
-  ).bind(
-    data.signature ?? '',
-    data.doctor_id,
-  ).run();
+// async function handleUpdateDoctor(request, env) {
+//   const data = await request.json();
+//   await env.DB.prepare(
+//     `UPDATE doctors SET signature = ? WHERE doctor_id = ?`
+//   ).bind(
+//     data.signature ?? '',
+//     data.doctor_id,
+//   ).run();
 
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+//   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+// }
+
+async function handleUpdateDoctor(request, env) {
+  try {
+    // Strictly require JSON for this route (matches your Express fetch)
+    const ct = request.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      return new Response(JSON.stringify({ error: 'Content-Type must be application/json' }), {
+        status: 415,
+        headers: corsHeaders,
+      });
+    }
+
+    let data;
+    try {
+      data = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        status: 400,
+        headers: corsHeaders,
+      });
+    }
+
+    let { doctor_id, signature } = data || {};
+    if (doctor_id == null || signature == null || signature === '') {
+      return new Response(JSON.stringify({ error: 'doctor_id and signature are required' }), {
+        status: 400,
+        headers: corsHeaders,
+      });
+    }
+
+    // Coerce doctor_id to number if it’s a string
+    if (typeof doctor_id === 'string' && doctor_id.trim() !== '') {
+      const n = Number(doctor_id);
+      if (Number.isNaN(n)) {
+        return new Response(JSON.stringify({ error: 'doctor_id must be a number' }), {
+          status: 400,
+          headers: corsHeaders,
+        });
+      }
+      doctor_id = n;
+    }
+
+    // Quick binding sanity (will throw if DB not bound)
+    if (!env.DB?.prepare) throw new Error('D1 binding "DB" missing on this environment');
+
+    const res = await env.DB
+      .prepare('UPDATE doctors SET signature = ? WHERE doctor_id = ?')
+      .bind(signature, doctor_id)
+      .run();
+
+    const changed = res?.meta?.changes ?? 0;
+    if (changed === 0) {
+      return new Response(JSON.stringify({ error: 'Doctor not found', doctor_id }), {
+        status: 404,
+        headers: corsHeaders,
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true, changed }), { headers: corsHeaders });
+  } catch (e) {
+    // This prevents 1101 and lets your Express proxy return a real JSON error
+    console.error('handleUpdateDoctor failed:', e?.stack || e);
+    return new Response(
+      JSON.stringify({ error: 'UPDATE_SIGNATURE_FAILED', detail: String(e?.message || e) }),
+      { status: 500, headers: corsHeaders }
+    );
+  }
 }
 
 
