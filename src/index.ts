@@ -294,7 +294,7 @@ async function handleGetAllDoctors(env) {
 async function handleUpdateDoctor(request, env) {
   const data = await request.json();
   await env.DB.prepare(
-    `UPDATE doctors SET signature = ? WHERE id = ?`
+    `UPDATE doctors SET signature = ? WHERE doctor_id = ?`
   ).bind(
     data.signature ?? '',
     data.doctor_id,
