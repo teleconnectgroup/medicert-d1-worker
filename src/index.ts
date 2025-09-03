@@ -68,6 +68,32 @@ export default {
         return handleUpdateDoctorInfo(doctorId, request, env);
       }
 
+      //doctors login endpoints
+      if (pathname === '/doctors/login' && method === 'GET') {
+        const { searchParams } = new URL(url);
+        const userName = searchParams.get('userName') || searchParams.get('username');
+        return handleDoctorLoginLookup(userName, env);
+      }
+      
+      // doctor login (POST with { userName })
+      if (pathname === '/doctors/login' && method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const userName = body?.userName || body?.username;
+        return handleDoctorLoginLookup(userName, env);
+      }
+      
+      // optional alias if you want to keep a simple path available
+      if (pathname === '/dlogin' && method === 'GET') {
+        const { searchParams } = new URL(url);
+        const userName = searchParams.get('userName') || searchParams.get('username');
+        return handleDoctorLoginLookup(userName, env);
+      }
+      if (pathname === '/dlogin' && method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const userName = body?.userName || body?.username;
+        return handleDoctorLoginLookup(userName, env);
+      }
+
       //doctors ends
 
       if (pathname === '/admins') {
@@ -324,7 +350,7 @@ async function handleUpdateDoctorInfo(doctorId, request, env) {
       return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: corsHeaders });
     }
 
-    // allow only existing columns
+
     const allow = ['firstname','lastname','phone','email','userName','password'];
     const fields = [];
     const values = [];
@@ -467,4 +493,44 @@ async function handleUpdateAdmin(id, request, env) {
 async function handleDeleteAdmin(id, env) {
   await env.DB.prepare('DELETE FROM admins WHERE id = ?').bind(id).run();
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+}
+
+//doctors login function
+async function handleDoctorLoginLookup(userName, env) {
+  if (!userName) {
+    return new Response(
+      JSON.stringify({ error: 'userName is required' }),
+      { status: 400, headers: corsHeaders }
+    );
+  }
+
+  // Case-insensitive match on userName
+  const row = await env.DB
+    .prepare(`
+      SELECT doctor_id, userName, password, firstname, lastname, email
+      FROM doctors
+      WHERE LOWER(userName) = LOWER(?)
+      LIMIT 1
+    `)
+    .bind(userName)
+    .first();
+
+  if (!row) {
+    return new Response(
+      JSON.stringify({ error: 'Doctor not found' }),
+      { status: 404, headers: corsHeaders }
+    );
+  }
+
+  // Return only what the backend needs to validate and identify the user
+  const payload = {
+    doctor_id: row.doctor_id,
+    userName: row.userName,
+    password: row.password,       // bcrypt hash (your Express route will compare)
+    firstname: row.firstname,
+    lastname: row.lastname,
+    email: row.email,
+  };
+
+  return new Response(JSON.stringify(payload), { headers: corsHeaders });
 }
