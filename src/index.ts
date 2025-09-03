@@ -507,7 +507,7 @@ async function handleDoctorLoginLookup(userName, env) {
   // Case-insensitive match on userName
   const row = await env.DB
     .prepare(`
-      SELECT doctor_id, userName, password, firstname, lastname, email
+      SELECT doctor_id, userName, password, firstname, lastname, email, signature
       FROM doctors
       WHERE LOWER(userName) = LOWER(?)
       LIMIT 1
@@ -529,6 +529,7 @@ async function handleDoctorLoginLookup(userName, env) {
     password: row.password,       // bcrypt hash (your Express route will compare)
     firstname: row.firstname,
     lastname: row.lastname,
+    signature: row.signature,
     email: row.email,
   };
 
