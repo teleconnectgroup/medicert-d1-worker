@@ -243,31 +243,45 @@ async function handleUpdateTransaction(orderId, request, env) {
   if (!orderId) {
     return new Response(JSON.stringify({ error: 'orderId required' }), { status: 400, headers: corsHeaders });
   }
+
   const body = await request.json().catch(() => ({}));
 
-  const fields = [];
-  const values = [];
+  const amount =
+    body.amount !== undefined ? (Number(body.amount) || 0) : undefined;
 
-  if (body.status) { fields.push('paymentStatus = ?'); values.push(body.status); }
-  if (body.method) { fields.push('paymentMethod = ?'); values.push(body.method); }
-  if (body.amount != null) { fields.push('amount = ?'); values.push(Number(body.amount) || 0); }
-  if (body.formData !== undefined) {
-    const fd = (typeof body.formData === 'object') ? JSON.stringify(body.formData) : body.formData;
-    fields.push('formData = ?'); values.push(fd);
-  }
+  const formData =
+    body.formData !== undefined
+      ? (typeof body.formData === 'object' ? JSON.stringify(body.formData) : String(body.formData))
+      : undefined;
 
-  if (fields.length === 0) {
+  if (
+    body.status === undefined &&
+    body.method === undefined &&
+    body.amount === undefined &&
+    body.formData === undefined
+  ) {
     return new Response(JSON.stringify({ error: 'No updatable fields' }), { status: 400, headers: corsHeaders });
   }
 
-  values.push(orderId);
-  const sql = `UPDATE orders SET ${fields.join(', ')} WHERE orderId = ?`;
-  const res = await env.DB.prepare(sql).bind(...values).run();
+  const sql = `
+    INSERT INTO orders (orderId, paymentStatus, paymentMethod, amount, formData)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(orderId) DO UPDATE SET
+      paymentStatus = COALESCE(excluded.paymentStatus, orders.paymentStatus),
+      paymentMethod = COALESCE(excluded.paymentMethod, orders.paymentMethod),
+      amount        = COALESCE(excluded.amount,        orders.amount),
+      formData      = COALESCE(excluded.formData,      orders.formData)
+  `;
 
-  if (!res?.meta || res.meta.changes === 0) {
-    return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: corsHeaders });
-  }
-  return new Response(JSON.stringify({ success: true, changed: res.meta.changes }), { headers: corsHeaders });
+  const res = await env.DB.prepare(sql).bind(
+    orderId,
+    body.status ?? null,
+    body.method ?? null,
+    amount ?? null,
+    formData ?? null
+  ).run();
+
+  return new Response(JSON.stringify({ success: true, changes: res.meta?.changes ?? 0 }), { headers: corsHeaders });
 }
 
 async function handleDeleteOrder(id, env) {
