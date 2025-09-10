@@ -248,8 +248,8 @@ async function handleUpdateTransaction(orderId, request, env) {
   const fields = [];
   const values = [];
 
-  if (body.status) { fields.push('status = ?'); values.push(body.status); }
-  if (body.method) { fields.push('method = ?'); values.push(body.method); }
+  if (body.status) { fields.push('paymentStatus = ?'); values.push(body.status); }
+  if (body.method) { fields.push('paymentMethod = ?'); values.push(body.method); }
   if (body.amount != null) { fields.push('amount = ?'); values.push(Number(body.amount) || 0); }
   if (body.formData !== undefined) {
     const fd = (typeof body.formData === 'object') ? JSON.stringify(body.formData) : body.formData;
@@ -261,7 +261,7 @@ async function handleUpdateTransaction(orderId, request, env) {
   }
 
   values.push(orderId);
-  const sql = `UPDATE transactions SET ${fields.join(', ')} WHERE order_id = ?`;
+  const sql = `UPDATE orders SET ${fields.join(', ')} WHERE orderId = ?`;
   const res = await env.DB.prepare(sql).bind(...values).run();
 
   if (!res?.meta || res.meta.changes === 0) {
