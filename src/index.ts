@@ -29,6 +29,11 @@ export default {
         return handleUpdateOrder(id, request, env);
       }
 
+      if (pathname.startsWith('/transactions/') && method === 'PUT') {
+        const orderId = decodeURIComponent(pathname.split('/')[2] || '');
+        return handleUpdateTransaction(orderId, request, env);
+      }
+
       if (pathname.startsWith('/orders/') && method === 'DELETE') {
         const id = pathname.split('/')[2];
         return handleDeleteOrder(id, env);
@@ -232,6 +237,37 @@ async function handleUpdateOrder(id, request, env) {
 
 
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+}
+
+async function handleUpdateTransaction(orderId, request, env) {
+  if (!orderId) {
+    return new Response(JSON.stringify({ error: 'orderId required' }), { status: 400, headers: corsHeaders });
+  }
+  const body = await request.json().catch(() => ({}));
+
+  const fields = [];
+  const values = [];
+
+  if (body.status) { fields.push('status = ?'); values.push(body.status); }
+  if (body.method) { fields.push('method = ?'); values.push(body.method); }
+  if (body.amount != null) { fields.push('amount = ?'); values.push(Number(body.amount) || 0); }
+  if (body.formData !== undefined) {
+    const fd = (typeof body.formData === 'object') ? JSON.stringify(body.formData) : body.formData;
+    fields.push('formData = ?'); values.push(fd);
+  }
+
+  if (fields.length === 0) {
+    return new Response(JSON.stringify({ error: 'No updatable fields' }), { status: 400, headers: corsHeaders });
+  }
+
+  values.push(orderId);
+  const sql = `UPDATE transactions SET ${fields.join(', ')} WHERE order_id = ?`;
+  const res = await env.DB.prepare(sql).bind(...values).run();
+
+  if (!res?.meta || res.meta.changes === 0) {
+    return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: corsHeaders });
+  }
+  return new Response(JSON.stringify({ success: true, changed: res.meta.changes }), { headers: corsHeaders });
 }
 
 async function handleDeleteOrder(id, env) {
