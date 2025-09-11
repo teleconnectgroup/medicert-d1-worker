@@ -239,50 +239,35 @@ async function handleUpdateOrder(id, request, env) {
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 }
 
-async function handleUpdateTransaction(orderId, request, env) {
-  if (!orderId) {
-    return new Response(JSON.stringify({ error: 'orderId required' }), { status: 400, headers: corsHeaders });
-  }
+async function handleUpdateTransaction(request, env) {
+  const data = await request.json();
 
-  const body = await request.json().catch(() => ({}));
+  const orderId = data?.orderId ?? '';
+  const formData = data?.formData
+    ? typeof data.formData === 'object'
+      ? JSON.stringify(data.formData)
+      : data.formData
+    : '';
+  const amount = data?.amount ?? 0;
+  const currency = data?.currency ?? 'EUR';
+  const paymentMethod = data?.paymentMethod ?? 'cash free';
+  const paymentStatus = data?.paymentStatus ?? 'pending';
 
-  const amount =
-    body.amount !== undefined ? (Number(body.amount) || 0) : undefined;
-
-  const formData =
-    body.formData !== undefined
-      ? (typeof body.formData === 'object' ? JSON.stringify(body.formData) : String(body.formData))
-      : undefined;
-
-  if (
-    body.status === undefined &&
-    body.method === undefined &&
-    body.amount === undefined &&
-    body.formData === undefined
-  ) {
-    return new Response(JSON.stringify({ error: 'No updatable fields' }), { status: 400, headers: corsHeaders });
-  }
-
-  const sql = `
-    INSERT INTO orders (orderId, paymentStatus, paymentMethod, amount, formData)
-    VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(orderId) DO UPDATE SET
-      paymentStatus = COALESCE(excluded.paymentStatus, orders.paymentStatus),
-      paymentMethod = COALESCE(excluded.paymentMethod, orders.paymentMethod),
-      amount        = COALESCE(excluded.amount,        orders.amount),
-      formData      = COALESCE(excluded.formData,      orders.formData)
-  `;
-
-  const res = await env.DB.prepare(sql).bind(
+  await env.DB.prepare(
+    `INSERT INTO orders (orderId, formData, amount, currency, paymentMethod, paymentStatus, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+  ).bind(
     orderId,
-    body.status ?? null,
-    body.method ?? null,
-    amount ?? null,
-    formData ?? null
+    formData,
+    amount,
+    currency,
+    paymentMethod,
+    paymentStatus
   ).run();
 
-  return new Response(JSON.stringify({ success: true, changes: res.meta?.changes ?? 0 }), { headers: corsHeaders });
+  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 }
+
 
 async function handleDeleteOrder(id, env) {
   await env.DB.prepare('DELETE FROM orders WHERE orderId = ?').bind(id).run();
