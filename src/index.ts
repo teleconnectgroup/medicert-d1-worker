@@ -240,6 +240,7 @@ async function handleUpdateOrder(id, request, env) {
 }
 
 async function handleUpdateTransaction(request, env) {
+
   const data = await request.json();
 
   const orderId = data?.orderId ?? '';
@@ -250,17 +251,19 @@ async function handleUpdateTransaction(request, env) {
     : '';
   const amount = data?.amount ?? 0;
   const currency = data?.currency ?? 'EUR';
-  const paymentMethod = data?.paymentMethod ?? 'cash free';
+  const paymentIntentId = data?.paymentIntentId ?? '';
+  const paymentMethod = data?.paymentMethod ?? '';
   const paymentStatus = data?.paymentStatus ?? 'pending';
 
   await env.DB.prepare(
-    `INSERT INTO orders (orderId, formData, amount, currency, paymentMethod, paymentStatus, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+    `INSERT INTO orders (orderId, formData, amount, currency, paymentIntentId, paymentMethod, paymentStatus, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).bind(
     orderId,
     formData,
     amount,
     currency,
+    paymentIntentId,
     paymentMethod,
     paymentStatus
   ).run();
