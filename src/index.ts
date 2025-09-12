@@ -240,44 +240,41 @@ async function handleUpdateOrder(id, request, env) {
 }
 
 async function handleUpdateTransaction(orderId, request, env) {
-  const data = await request.json().catch(() => ({}));
-
-  if (!orderId) {
-    return new Response(JSON.stringify({ error: 'orderId required' }), {
-      status: 400,
-      headers: { 'content-type': 'application/json', ...corsHeaders },
-    });
-  }
-
-  // Map backend fields; only update provided ones
-  const paymentStatus = (data.paymentStatus ?? data.status) ?? null;
-  const paymentMethod = (data.paymentMethod ?? data.method) ?? null;
-  const amount        = data.amount !== undefined ? (Number(data.amount) || 0) : null;
-  const currency      = data.currency ?? null;
-
-  const formData =
-    data.formData !== undefined
-      ? (typeof data.formData === 'object'
-          ? (() => { try { return JSON.stringify(data.formData); } catch { return null; } })()
-          : String(data.formData))
-      : null;
-
-  // UPSERT for D1/SQLite — use bare column names on RHS
-  const sql = `
-    INSERT INTO orders (
-      orderId, formData, amount, currency, paymentMethod, paymentStatus, createdAt
-    )
-    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(orderId) DO UPDATE SET
-      formData      = COALESCE(excluded.formData,      formData),
-      amount        = COALESCE(excluded.amount,        amount),
-      currency      = COALESCE(excluded.currency,      currency),
-      paymentMethod = COALESCE(excluded.paymentMethod, paymentMethod),
-      paymentStatus = COALESCE(excluded.paymentStatus, paymentStatus),
-      updatedAt     = CURRENT_TIMESTAMP
-  `;
-
   try {
+    if (!orderId) {
+      return new Response(JSON.stringify({ error: 'orderId required' }), {
+        status: 400, headers: { 'content-type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    const data = await request.json().catch(() => ({}));
+
+    const paymentStatus = (data.paymentStatus ?? data.status) ?? null;
+    const paymentMethod = (data.paymentMethod ?? data.method) ?? null;
+    const amount        = data.amount !== undefined ? (Number(data.amount) || 0) : null;
+    const currency      = data.currency ?? null;
+
+    const formData =
+      data.formData !== undefined
+        ? (typeof data.formData === 'object'
+            ? (() => { try { return JSON.stringify(data.formData); } catch { return null; } })()
+            : String(data.formData))
+        : null;
+
+    const sql = `
+      INSERT INTO orders (
+        orderId, formData, amount, currency, paymentMethod, paymentStatus, createdAt
+      )
+      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(orderId) DO UPDATE SET
+        formData      = COALESCE(excluded.formData,      formData),
+        amount        = COALESCE(excluded.amount,        amount),
+        currency      = COALESCE(excluded.currency,      currency),
+        paymentMethod = COALESCE(excluded.paymentMethod, paymentMethod),
+        paymentStatus = COALESCE(excluded.paymentStatus, paymentStatus),
+        updatedAt     = CURRENT_TIMESTAMP
+    `;
+
     await env.DB.prepare(sql).bind(
       orderId, formData, amount, currency, paymentMethod, paymentStatus
     ).run();
@@ -290,8 +287,7 @@ async function handleUpdateTransaction(orderId, request, env) {
       error: 'Worker exception',
       message: String(err?.message || err),
     }), {
-      status: 500,
-      headers: { 'content-type': 'application/json', ...corsHeaders },
+      status: 500, headers: { 'content-type': 'application/json', ...corsHeaders },
     });
   }
 }
