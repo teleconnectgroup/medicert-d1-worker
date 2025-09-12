@@ -239,36 +239,61 @@ async function handleUpdateOrder(id, request, env) {
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 }
 
-async function handleUpdateTransaction(request, env) {
+async function handleUpdateTransaction(orderId, request, env) {
+  const data = await request.json().catch(() => ({}));
 
-  const data = await request.json();
+  if (!orderId) {
+    return new Response(JSON.stringify({ error: 'orderId required' }), {
+      status: 400,
+      headers: { 'content-type': 'application/json', ...corsHeaders },
+    });
+  }
 
-  const orderId = data?.orderId ?? '';
-  const formData = data?.formData
-    ? typeof data.formData === 'object'
-      ? JSON.stringify(data.formData)
-      : data.formData
-    : '';
-  const amount = data?.amount ?? 0;
-  const currency = data?.currency ?? 'EUR';
-  const paymentIntentId = data?.paymentIntentId ?? '';
-  const paymentMethod = data?.paymentMethod ?? '';
-  const paymentStatus = data?.paymentStatus ?? 'pending';
+  // Map backend fields; only update provided ones
+  const paymentStatus = (data.paymentStatus ?? data.status) ?? null;
+  const paymentMethod = (data.paymentMethod ?? data.method) ?? null;
+  const amount        = data.amount !== undefined ? (Number(data.amount) || 0) : null;
+  const currency      = data.currency ?? null;
 
-  await env.DB.prepare(
-    `INSERT INTO orders (orderId, formData, amount, currency, paymentIntentId, paymentMethod, paymentStatus, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
-  ).bind(
-    orderId,
-    formData,
-    amount,
-    currency,
-    paymentIntentId,
-    paymentMethod,
-    paymentStatus
-  ).run();
+  const formData =
+    data.formData !== undefined
+      ? (typeof data.formData === 'object'
+          ? (() => { try { return JSON.stringify(data.formData); } catch { return null; } })()
+          : String(data.formData))
+      : null;
 
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+  // UPSERT for D1/SQLite — use bare column names on RHS
+  const sql = `
+    INSERT INTO orders (
+      orderId, formData, amount, currency, paymentMethod, paymentStatus, createdAt
+    )
+    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(orderId) DO UPDATE SET
+      formData      = COALESCE(excluded.formData,      formData),
+      amount        = COALESCE(excluded.amount,        amount),
+      currency      = COALESCE(excluded.currency,      currency),
+      paymentMethod = COALESCE(excluded.paymentMethod, paymentMethod),
+      paymentStatus = COALESCE(excluded.paymentStatus, paymentStatus),
+      updatedAt     = CURRENT_TIMESTAMP
+  `;
+
+  try {
+    await env.DB.prepare(sql).bind(
+      orderId, formData, amount, currency, paymentMethod, paymentStatus
+    ).run();
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'content-type': 'application/json', ...corsHeaders },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({
+      error: 'Worker exception',
+      message: String(err?.message || err),
+    }), {
+      status: 500,
+      headers: { 'content-type': 'application/json', ...corsHeaders },
+    });
+  }
 }
 
 
