@@ -240,55 +240,51 @@ async function handleUpdateOrder(id, request, env) {
 }
 
 async function handleUpdateTransaction(orderId, request, env) {
+  const json = (obj, status = 200) =>
+    new Response(JSON.stringify(obj), {
+      status,
+      headers: { 'content-type': 'application/json', ...(corsHeaders || {}) },
+    });
+
   try {
-    if (!orderId) {
-      return new Response(JSON.stringify({ error: 'orderId required' }), {
-        status: 400, headers: { 'content-type': 'application/json', ...corsHeaders },
-      });
-    }
+    if (!orderId) return json({ error: 'orderId required' }, 400);
 
     const data = await request.json().catch(() => ({}));
 
-    const paymentStatus = (data.paymentStatus ?? data.status) ?? null;
-    const paymentMethod = (data.paymentMethod ?? data.method) ?? null;
-    const amount        = data.amount !== undefined ? (Number(data.amount) || 0) : null;
-    const currency      = data.currency ?? null;
+    // Map backend fields → DB columns
+    const paymentStatus = (data.status ?? data.paymentStatus) ?? 'pending';
+    const paymentMethod = (data.method ?? data.paymentMethod) ?? 'cash free';
+    const amount        = data.amount !== undefined ? (Number(data.amount) || 0) : 0;
+    const currency      = data.currency ?? 'INR';
 
     const formData =
-      data.formData !== undefined
+      data.formData
         ? (typeof data.formData === 'object'
-            ? (() => { try { return JSON.stringify(data.formData); } catch { return null; } })()
+            ? (() => { try { return JSON.stringify(data.formData); } catch { return ''; } })()
             : String(data.formData))
-        : null;
+        : '';
 
+    // INSERT ONLY
     const sql = `
       INSERT INTO orders (
         orderId, formData, amount, currency, paymentMethod, paymentStatus, createdAt
       )
       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(orderId) DO UPDATE SET
-        formData      = COALESCE(excluded.formData,      formData),
-        amount        = COALESCE(excluded.amount,        amount),
-        currency      = COALESCE(excluded.currency,      currency),
-        paymentMethod = COALESCE(excluded.paymentMethod, paymentMethod),
-        paymentStatus = COALESCE(excluded.paymentStatus, paymentStatus),
-        updatedAt     = CURRENT_TIMESTAMP
     `;
 
     await env.DB.prepare(sql).bind(
       orderId, formData, amount, currency, paymentMethod, paymentStatus
     ).run();
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { 'content-type': 'application/json', ...corsHeaders },
-    });
+    return json({ success: true });
   } catch (err) {
-    return new Response(JSON.stringify({
-      error: 'Worker exception',
-      message: String(err?.message || err),
-    }), {
-      status: 500, headers: { 'content-type': 'application/json', ...corsHeaders },
-    });
+    const msg = String(err?.message || err);
+
+    // Nice duplicate-key message if order already exists
+    if (msg.includes('UNIQUE constraint failed') || msg.includes('constraint failed')) {
+      return json({ error: 'orderId already exists' }, 409);
+    }
+    return json({ error: 'Worker exception', message: msg }, 500);
   }
 }
 
