@@ -359,7 +359,7 @@ async function handleGetTodayRefundCount(env) {
 async function handleCreateDoctor(request, env) {
   const data = await request.json();
   await env.DB.prepare(
-    `INSERT INTO doctors (firstname, lastname, phone, email, signature, userName, password) VALUES (?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO doctors (firstname, lastname, phone, email, signature, userName, password, regnumber, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     data.firstname ?? '',
     data.lastname ?? '',
@@ -367,7 +367,9 @@ async function handleCreateDoctor(request, env) {
     data.email ?? '',
     data.signature ?? '',
     data.userName ?? '',
-    data.password ?? ''
+    data.password ?? '',
+    data.regnumber ?? '',
+    data.specialty ?? '',
   ).run();
 
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
