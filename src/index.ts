@@ -564,7 +564,7 @@ async function handleDoctorLoginLookup(userName, env) {
   // Case-insensitive match on userName
   const row = await env.DB
     .prepare(`
-      SELECT doctor_id, userName, password, firstname, lastname, email, signature, phone
+      SELECT doctor_id, userName, password, firstname, lastname, email, signature, phone, regnumber, specialty
       FROM doctors
       WHERE LOWER(userName) = LOWER(?)
       LIMIT 1
@@ -588,6 +588,8 @@ async function handleDoctorLoginLookup(userName, env) {
     signature: row.signature,
     email: row.email,
     phone: row.phone,
+    regnumber: row.regnumber,
+    specialty: row.specialty,
   };
 
   return new Response(JSON.stringify(payload), { headers: corsHeaders });
