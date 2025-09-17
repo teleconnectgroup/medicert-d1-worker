@@ -368,7 +368,7 @@ async function handleCreateDoctor(request, env) {
     data.signature ?? '',
     data.userName ?? '',
     data.password ?? '',
-    data.regnumber ?? '',
+    data.regNumber ?? '',
     data.specialty ?? '',
   ).run();
 
