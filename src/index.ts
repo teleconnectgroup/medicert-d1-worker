@@ -408,7 +408,7 @@ async function handleUpdateDoctorInfo(doctorId, request, env) {
     }
 
 
-    const allow = ['firstname','lastname','phone','email','userName','password'];
+    const allow = ['firstname','lastname','phone','email','userName','password', 'regnumber', 'specialty'];
     const fields = [];
     const values = [];
 
