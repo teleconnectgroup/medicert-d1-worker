@@ -552,7 +552,6 @@ async function handleDeleteAdmin(id, env) {
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 }
 
-//doctors login function
 async function handleDoctorLoginLookup(userName, env) {
   if (!userName) {
     return new Response(
@@ -561,7 +560,6 @@ async function handleDoctorLoginLookup(userName, env) {
     );
   }
 
-  // Case-insensitive match on userName
   const row = await env.DB
     .prepare(`
       SELECT *

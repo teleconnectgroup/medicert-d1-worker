@@ -1,4 +1,4 @@
-name = "medshein-db"
+name = "medicert-db"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
 upload_source_maps = true
@@ -8,8 +8,8 @@ enabled = true
 
 [[d1_databases]]
 binding = "DB"
-database_id = "907b1a12-f24c-4b6d-b4ce-a64dbc3623e4"
-database_name = "medschein"
+database_id = "4091baff-e770-4ee8-a0dd-613baf7947bd"
+database_name = "pdf-india"
 
 # Optional Smart Placement
 # [placement]
