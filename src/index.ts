@@ -34,6 +34,11 @@ export default {
         return handleUpdateTransaction(orderId, request, env);
       }
 
+      if (pathname.startsWith('/transactionsu/') && method === 'PUT') {
+        const orderId = decodeURIComponent(pathname.split('/')[2] || '');
+        return handleUpdateTransactionu(orderId, request, env);
+      }
+
       if (pathname.startsWith('/orders/') && method === 'DELETE') {
         const id = pathname.split('/')[2];
         return handleDeleteOrder(id, env);
@@ -285,6 +290,60 @@ async function handleUpdateTransaction(orderId, request, env) {
       return json({ error: 'orderId already exists' }, 409);
     }
     return json({ error: 'Worker exception', message: msg }, 500);
+  }
+}
+
+async function handleUpdateTransactionu(orderId, request, env) {
+  const json = (obj, status = 200) =>
+    new Response(JSON.stringify(obj), {
+      status,
+      headers: { "content-type": "application/json", ...(corsHeaders || {}) },
+    });
+
+  try {
+    if (!orderId) return json({ error: "orderId required" }, 400);
+
+    const data = await request.json().catch(() => ({}));
+
+    // Map backend fields → DB columns
+    const paymentStatus = (data.status ?? data.paymentStatus) ?? "pending";
+    const paymentMethod = (data.method ?? data.paymentMethod) ?? "cash free";
+    const amount        = data.amount !== undefined ? (Number(data.amount) || 0) : 0;
+    const currency      = data.currency ?? "INR";
+
+    const formData =
+      data.formData
+        ? (typeof data.formData === "object"
+            ? (() => { try { return JSON.stringify(data.formData); } catch { return ""; } })()
+            : String(data.formData))
+        : "";
+
+    // UPDATE ONLY (no insert)
+    const sql = `
+      UPDATE orders
+      SET
+        formData       = ?,
+        amount         = ?,
+        currency       = ?,
+        paymentMethod  = ?,
+        paymentStatus  = ?,
+        updatedAt      = CURRENT_TIMESTAMP
+      WHERE orderId    = ?
+    `;
+
+    const result = await env.DB.prepare(sql).bind(
+      formData, amount, currency, paymentMethod, paymentStatus, orderId
+    ).run();
+
+    // D1 (SQLite) returns number of changed rows
+    if (!result || (result.meta?.changes ?? result.changes ?? 0) === 0) {
+      return json({ error: "orderId not found" }, 404);
+    }
+
+    return json({ success: true, updated: result.meta?.changes ?? result.changes ?? 1 });
+  } catch (err) {
+    const msg = String(err?.message || err);
+    return json({ error: "Worker exception", message: msg }, 500);
   }
 }
 
