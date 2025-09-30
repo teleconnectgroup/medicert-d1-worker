@@ -301,49 +301,63 @@ async function handleUpdateTransactionu(orderId, request, env) {
     });
 
   try {
-    // normalize the id (common mismatch culprit)
     const id = decodeURIComponent(String(orderId || "")).trim();
     if (!id) return json({ error: "orderId required" }, 400);
 
-    const data = await request.json().catch(() => ({}));
+    const body = await request.json().catch(() => ({}));
 
-    const paymentStatus = (data.status ?? data.paymentStatus) ?? "pending";
-    const paymentMethod = (data.method ?? data.paymentMethod) ?? "cash free";
-    const amount        = data.amount !== undefined ? (Number(data.amount) || 0) : 0;
-    const currency      = data.currency ?? "INR";
-
+    // map fields
+    const paymentStatus = (body.status ?? body.paymentStatus) ?? "pending";
+    const paymentMethod = (body.method ?? body.paymentMethod) ?? "cash free";
+    const amount        = body.amount !== undefined ? (Number(body.amount) || 0) : 0;
+    const currency      = body.currency ?? "INR";
     const formData =
-      data.formData
-        ? (typeof data.formData === "object"
-            ? (() => { try { return JSON.stringify(data.formData); } catch { return ""; } })()
-            : String(data.formData))
+      body.formData
+        ? (typeof body.formData === "object"
+            ? (() => { try { return JSON.stringify(body.formData); } catch { return ""; } })()
+            : String(body.formData))
         : "";
 
-    // Single upsert: insert if new, otherwise update
-    const sql = `
+    // 1) UPDATE first
+    const sqlUpdate = `
+      UPDATE orders
+      SET
+        formData      = ?,
+        amount        = ?,
+        currency      = ?,
+        paymentMethod = ?,
+        paymentStatus = ?,
+        updatedAt     = CURRENT_TIMESTAMP
+      WHERE orderId   = ?
+    `;
+    const ures = await env.DB.prepare(sqlUpdate).bind(
+      formData, amount, currency, paymentMethod, paymentStatus, id
+    ).run();
+    const updated = ures?.meta?.changes ?? ures?.changes ?? 0;
+
+    if (updated > 0) {
+      return json({ success: true, action: "update", affected: updated });
+    }
+
+    // 2) INSERT if nothing was updated
+    const sqlInsert = `
       INSERT INTO orders (
         orderId, formData, amount, currency, paymentMethod, paymentStatus, createdAt, updatedAt
       )
       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      ON CONFLICT(orderId) DO UPDATE SET
-        formData      = excluded.formData,
-        amount        = excluded.amount,
-        currency      = excluded.currency,
-        paymentMethod = excluded.paymentMethod,
-        paymentStatus = excluded.paymentStatus,
-        updatedAt     = CURRENT_TIMESTAMP
     `;
-
-    const result = await env.DB.prepare(sql).bind(
+    const ires = await env.DB.prepare(sqlInsert).bind(
       id, formData, amount, currency, paymentMethod, paymentStatus
     ).run();
 
-    const changes = result?.meta?.changes ?? result?.changes ?? 0;
-    // changes is 1 for insert, 1 for update in SQLite; you can't distinguish which from this alone.
-    return json({ success: true, action: "upsert", affected: changes });
+    return json({
+      success: true,
+      action: "insert",
+      affected: ires?.meta?.changes ?? ires?.changes ?? 0
+    });
+
   } catch (err) {
-    const msg = String(err?.message || err);
-    return json({ error: "Worker exception", message: msg }, 500);
+    return json({ error: "Worker exception", message: String(err?.message || err) }, 500);
   }
 }
 
