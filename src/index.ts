@@ -301,7 +301,9 @@ async function handleUpdateTransactionu(orderId, request, env) {
     });
 
   try {
-    if (!orderId) return json({ error: "orderId required" }, 400);
+    // normalize the id (common mismatch culprit)
+    const id = decodeURIComponent(String(orderId || "")).trim();
+    if (!id) return json({ error: "orderId required" }, 400);
 
     const data = await request.json().catch(() => ({}));
 
@@ -317,48 +319,28 @@ async function handleUpdateTransactionu(orderId, request, env) {
             : String(data.formData))
         : "";
 
-    const existsRow = await env.DB
-      .prepare("SELECT 1 AS x FROM orders WHERE orderId = ? LIMIT 1")
-      .bind(orderId)
-      .first();
+    // Single upsert: insert if new, otherwise update
+    const sql = `
+      INSERT INTO orders (
+        orderId, formData, amount, currency, paymentMethod, paymentStatus, createdAt, updatedAt
+      )
+      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT(orderId) DO UPDATE SET
+        formData      = excluded.formData,
+        amount        = excluded.amount,
+        currency      = excluded.currency,
+        paymentMethod = excluded.paymentMethod,
+        paymentStatus = excluded.paymentStatus,
+        updatedAt     = CURRENT_TIMESTAMP
+    `;
 
-    let result, action;
-
-    if (existsRow) {
-      const sqlUpdate = `
-        UPDATE orders
-        SET
-          formData      = ?,
-          amount        = ?,
-          currency      = ?,
-          paymentMethod = ?,
-          paymentStatus = ?,
-          updatedAt     = CURRENT_TIMESTAMP
-        WHERE orderId   = ?
-      `;
-      result = await env.DB.prepare(sqlUpdate).bind(
-        formData, amount, currency, paymentMethod, paymentStatus, orderId
-      ).run();
-      action = "update";
-    } else {
-      const sqlInsert = `
-        INSERT INTO orders (
-          orderId, formData, amount, currency, paymentMethod, paymentStatus, createdAt, updatedAt
-        )
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      `;
-      result = await env.DB.prepare(sqlInsert).bind(
-        orderId, formData, amount, currency, paymentMethod, paymentStatus
-      ).run();
-      action = "insert";
-    }
+    const result = await env.DB.prepare(sql).bind(
+      id, formData, amount, currency, paymentMethod, paymentStatus
+    ).run();
 
     const changes = result?.meta?.changes ?? result?.changes ?? 0;
-    if (changes === 0) {
-      return json({ error: "No rows affected" }, 500);
-    }
-
-    return json({ success: true, action, affected: changes });
+    // changes is 1 for insert, 1 for update in SQLite; you can't distinguish which from this alone.
+    return json({ success: true, action: "upsert", affected: changes });
   } catch (err) {
     const msg = String(err?.message || err);
     return json({ error: "Worker exception", message: msg }, 500);
