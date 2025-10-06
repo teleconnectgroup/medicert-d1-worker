@@ -306,6 +306,12 @@ async function handleUpdateTransactionu(orderId, request, env) {
 
     const body = await request.json().catch(() => ({}));
 
+    const toNum = (v) => {
+      if (v === undefined || v === null || v === "") return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+
     const paymentStatus = (body.status ?? body.paymentStatus) ?? "pending";
     const paymentMethod = (body.method ?? body.paymentMethod) ?? "cash free";
     const amount        = body.amount !== undefined ? (Number(body.amount) || 0) : 0;
@@ -316,7 +322,7 @@ async function handleUpdateTransactionu(orderId, request, env) {
             ? (() => { try { return JSON.stringify(body.formData); } catch { return ""; } })()
             : String(body.formData))
         : "";
-    const doctor_id = body.doctor_id;
+    const doctor_id = toNum(body.doctor_id);
 
     const sqlUpdate = `
       UPDATE orders
