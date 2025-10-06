@@ -142,9 +142,22 @@ const corsHeaders = {
 };
 
 // Orders handlers
+// async function handleGetAllOrders(env) {
+//   const { results } = await env.DB.prepare('SELECT * FROM orders').all();
+//   return new Response(JSON.stringify(results), { headers: corsHeaders });
+// }
+
 async function handleGetAllOrders(env) {
-  const { results } = await env.DB.prepare('SELECT * FROM orders').all();
-  return new Response(JSON.stringify(results), { headers: corsHeaders });
+  const q = `
+    SELECT o.*, d.*
+    FROM orders o
+    LEFT JOIN doctors d ON d.doctor_id = o.doctor_id
+    ORDER BY o.createdAt DESC
+  `;
+  const { results } = await env.DB.prepare(q).all();
+  return new Response(JSON.stringify(results), {
+    headers: { "content-type": "application/json", ...(corsHeaders || {}) },
+  });
 }
 
 async function handleGetOneOrder(id, env) {
