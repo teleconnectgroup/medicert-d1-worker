@@ -306,7 +306,6 @@ async function handleUpdateTransactionu(orderId, request, env) {
 
     const body = await request.json().catch(() => ({}));
 
-    // map fields
     const paymentStatus = (body.status ?? body.paymentStatus) ?? "pending";
     const paymentMethod = (body.method ?? body.paymentMethod) ?? "cash free";
     const amount        = body.amount !== undefined ? (Number(body.amount) || 0) : 0;
@@ -317,8 +316,8 @@ async function handleUpdateTransactionu(orderId, request, env) {
             ? (() => { try { return JSON.stringify(body.formData); } catch { return ""; } })()
             : String(body.formData))
         : "";
+    const doctor_id = body.doctor_id;
 
-    // 1) UPDATE first
     const sqlUpdate = `
       UPDATE orders
       SET
@@ -327,11 +326,12 @@ async function handleUpdateTransactionu(orderId, request, env) {
         currency      = ?,
         paymentMethod = ?,
         paymentStatus = ?,
-        updatedAt     = CURRENT_TIMESTAMP
+        updatedAt     = CURRENT_TIMESTAMP,
+        doctor_id     = ?
       WHERE orderId   = ?
     `;
     const ures = await env.DB.prepare(sqlUpdate).bind(
-      formData, amount, currency, paymentMethod, paymentStatus, id
+      formData, amount, currency, paymentMethod, paymentStatus, doctor_id, id
     ).run();
     const updated = ures?.meta?.changes ?? ures?.changes ?? 0;
 
@@ -339,15 +339,14 @@ async function handleUpdateTransactionu(orderId, request, env) {
       return json({ success: true, action: "update", affected: updated });
     }
 
-    // 2) INSERT if nothing was updated
     const sqlInsert = `
       INSERT INTO orders (
-        orderId, formData, amount, currency, paymentMethod, paymentStatus, createdAt, updatedAt
+        orderId, formData, amount, currency, paymentMethod, paymentStatus, createdAt, updatedAt, doctor_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
     `;
     const ires = await env.DB.prepare(sqlInsert).bind(
-      id, formData, amount, currency, paymentMethod, paymentStatus
+      id, formData, amount, currency, paymentMethod, paymentStatus, doctor_id
     ).run();
 
     return json({
