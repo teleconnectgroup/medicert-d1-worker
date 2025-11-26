@@ -6,99 +6,116 @@ export default {
     const { pathname } = new URL(url);
 
     // Enable CORS
-    if (method === 'OPTIONS') {
+    if (method === "OPTIONS") {
       return new Response(null, {
         status: 204,
-        headers: corsHeaders
+        headers: corsHeaders,
       });
     }
 
     try {
-      if (pathname === '/orders') {
-        if (method === 'GET') return handleGetAllOrders(env);
-        if (method === 'POST') return handleCreateOrder(request, env);
+      if (pathname === "/health" && method === "GET") {
+        return new Response(
+          JSON.stringify({
+            status: "UP",
+            service: "D1 Worker API",
+            timestamp: new Date().toISOString(),
+          }),
+          { status: 200, headers: corsHeaders }
+        );
       }
 
-      if (pathname.startsWith('/orders/') && method === 'GET') {
-        const id = pathname.split('/')[2];
+      if (pathname === "/orders") {
+        if (method === "GET") return handleGetAllOrders(env);
+        if (method === "POST") return handleCreateOrder(request, env);
+      }
+
+      if (pathname.startsWith("/orders/") && method === "GET") {
+        const id = pathname.split("/")[2];
         return handleGetOneOrder(id, env);
       }
 
-      if (pathname.startsWith('/orders/') && method === 'PUT') {
-        const id = pathname.split('/')[2];
+      if (pathname.startsWith("/orders/") && method === "PUT") {
+        const id = pathname.split("/")[2];
         return handleUpdateOrder(id, request, env);
       }
 
-      if (pathname.startsWith('/transactions/') && method === 'PUT') {
-        const orderId = decodeURIComponent(pathname.split('/')[2] || '');
+      if (pathname.startsWith("/transactions/") && method === "PUT") {
+        const orderId = decodeURIComponent(pathname.split("/")[2] || "");
         return handleUpdateTransaction(orderId, request, env);
       }
 
-      if (pathname.startsWith('/transactionsu/') && method === 'PUT') {
-        const orderId = decodeURIComponent(pathname.split('/')[2] || '');
+      if (pathname.startsWith("/transactionsu/") && method === "PUT") {
+        const orderId = decodeURIComponent(pathname.split("/")[2] || "");
         return handleUpdateTransactionu(orderId, request, env);
       }
 
-      if (pathname.startsWith('/orders/') && method === 'DELETE') {
-        const id = pathname.split('/')[2];
+      if (pathname.startsWith("/orders/") && method === "DELETE") {
+        const id = pathname.split("/")[2];
         return handleDeleteOrder(id, env);
       }
-      if (pathname === '/refunds/today' && method === 'GET') {
-        console.log('GET /refunds/today');
+      if (pathname === "/refunds/today" && method === "GET") {
+        console.log("GET /refunds/today");
         return handleGetTodayRefundCount(env);
       }
 
-      if (pathname === '/refunds') {
-        if (method === 'GET') return handleGetAllRefunds(env);
-        if (method === 'POST') return handleCreateRefund(request, env);
+      if (pathname === "/refunds") {
+        if (method === "GET") return handleGetAllRefunds(env);
+        if (method === "POST") return handleCreateRefund(request, env);
       }
 
-      if (pathname.startsWith('/refunds/') && method === 'GET') {
-        const id = pathname.split('/')[2];
+      if (pathname.startsWith("/refunds/") && method === "GET") {
+        const id = pathname.split("/")[2];
         return handleGetOneRefund(id, env);
       }
 
-      if (pathname.startsWith('/refunds/') && method === 'DELETE') {
-        const id = pathname.split('/')[2];
+      if (pathname.startsWith("/refunds/") && method === "DELETE") {
+        const id = pathname.split("/")[2];
         return handleDeleteRefund(id, env);
       }
 
-      if (pathname === '/doctors') {
-        console.log('GET /doctors');
-        if (method === 'GET') return handleGetAllDoctors(env);
-        if (method === 'POST') return handleCreateDoctor(request, env);
+      if (pathname === "/doctors") {
+        console.log("GET /doctors");
+        if (method === "GET") return handleGetAllDoctors(env);
+        if (method === "POST") return handleCreateDoctor(request, env);
       }
 
-      if (pathname.startsWith('/doctors/signature') && method === 'PUT') {
+      if (pathname.startsWith("/doctors/signature") && method === "PUT") {
         return handleUpdateDoctor(request, env);
       }
 
-      if (pathname.startsWith('/doctors/') && method === 'PUT' && !pathname.startsWith('/doctors/signature')) {
-        const doctorId = Number(pathname.split('/')[2]);
+      if (
+        pathname.startsWith("/doctors/") &&
+        method === "PUT" &&
+        !pathname.startsWith("/doctors/signature")
+      ) {
+        const doctorId = Number(pathname.split("/")[2]);
         return handleUpdateDoctorInfo(doctorId, request, env);
       }
 
       //doctors login endpoints
-      if (pathname === '/doctors/login' && method === 'GET') {
+      if (pathname === "/doctors/login" && method === "GET") {
         const { searchParams } = new URL(url);
-        const userName = searchParams.get('userName') || searchParams.get('username');
+        const userName =
+          searchParams.get("userName") || searchParams.get("username");
         return handleDoctorLoginLookup(userName, env);
       }
-      
+
       // doctor login (POST with { userName })
-      if (pathname === '/doctors/login' && method === 'POST') {
+      if (pathname === "/doctors/login" && method === "POST") {
         const body = await request.json().catch(() => ({}));
         const userName = body?.userName || body?.username;
         return handleDoctorLoginLookup(userName, env);
       }
-      
+
       // optional alias if you want to keep a simple path available
-      if (pathname === '/dlogin' && method === 'GET') {
+      if (pathname === "/dlogin" && method === "GET") {
         const { searchParams } = new URL(url);
-        const userName = searchParams.get('userName') || searchParams.get('username');
+        const userName =
+          searchParams.get("userName") || searchParams.get("username");
         return handleDoctorLoginLookup(userName, env);
       }
-      if (pathname === '/dlogin' && method === 'POST') {
+      if (pathname === "/dlogin" && method === "POST") {
         const body = await request.json().catch(() => ({}));
         const userName = body?.userName || body?.username;
         return handleDoctorLoginLookup(userName, env);
@@ -106,39 +123,42 @@ export default {
 
       //doctors ends
 
-      if (pathname === '/admins') {
-        console.log('GET /admins');
-        if (method === 'GET') return handleGetAllAdmins(env);
-        if (method === 'POST') return handleCreateAdmin(request, env);
+      if (pathname === "/admins") {
+        console.log("GET /admins");
+        if (method === "GET") return handleGetAllAdmins(env);
+        if (method === "POST") return handleCreateAdmin(request, env);
       }
 
-      if (pathname.startsWith('/admins/') && method === 'GET') {
-        const id = pathname.split('/')[2];
+      if (pathname.startsWith("/admins/") && method === "GET") {
+        const id = pathname.split("/")[2];
         return handleGetOneAdmin(id, env);
       }
 
-      if (pathname.startsWith('/admins/') && method === 'PUT') {
-        const id = pathname.split('/')[2];
+      if (pathname.startsWith("/admins/") && method === "PUT") {
+        const id = pathname.split("/")[2];
         return handleUpdateAdmin(id, request, env);
       }
 
-      if (pathname.startsWith('/admins/') && method === 'DELETE') {
-        const id = pathname.split('/')[2];
+      if (pathname.startsWith("/admins/") && method === "DELETE") {
+        const id = pathname.split("/")[2];
         return handleDeleteAdmin(id, env);
       }
 
-      return new Response('Not Found', { status: 404, headers: corsHeaders });
+      return new Response("Not Found", { status: 404, headers: corsHeaders });
     } catch (err) {
-      return new Response(`Error: ${err.message}`, { status: 500, headers: corsHeaders });
+      return new Response(`Error: ${err.message}`, {
+        status: 500,
+        headers: corsHeaders,
+      });
     }
   },
 };
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': '*',
-  'Content-Type': 'application/json'
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "*",
+  "Content-Type": "application/json",
 };
 
 // Orders handlers
@@ -161,51 +181,57 @@ async function handleGetAllOrders(env) {
 }
 
 async function handleGetOneOrder(id, env) {
-  const result = await env.DB.prepare('SELECT * FROM orders WHERE orderId = ?').bind(id).first();
+  const result = await env.DB.prepare("SELECT * FROM orders WHERE orderId = ?")
+    .bind(id)
+    .first();
   return new Response(JSON.stringify(result), { headers: corsHeaders });
 }
 
 async function handleCreateOrder(request, env) {
   const data = await request.json();
 
-  const orderId = data?.orderId ?? '';
+  const orderId = data?.orderId ?? "";
   const formData = data?.formData
-    ? typeof data.formData === 'object'
+    ? typeof data.formData === "object"
       ? JSON.stringify(data.formData)
       : data.formData
-    : '';
+    : "";
   const amount = data?.amount ?? 0;
-  const currency = data?.currency ?? 'EUR';
-  const paymentIntentId = data?.paymentIntentId ?? '';
-  const paymentMethod = data?.paymentMethod ?? '';
-  const paymentStatus = data?.paymentStatus ?? 'pending';
+  const currency = data?.currency ?? "EUR";
+  const paymentIntentId = data?.paymentIntentId ?? "";
+  const paymentMethod = data?.paymentMethod ?? "";
+  const paymentStatus = data?.paymentStatus ?? "pending";
 
   await env.DB.prepare(
     `INSERT INTO orders (orderId, formData, amount, currency, paymentIntentId, paymentMethod, paymentStatus, createdAt)
      VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
-  ).bind(
-    orderId,
-    formData,
-    amount,
-    currency,
-    paymentIntentId,
-    paymentMethod,
-    paymentStatus
-  ).run();
+  )
+    .bind(
+      orderId,
+      formData,
+      amount,
+      currency,
+      paymentIntentId,
+      paymentMethod,
+      paymentStatus
+    )
+    .run();
 
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+  return new Response(JSON.stringify({ success: true }), {
+    headers: corsHeaders,
+  });
 }
 
 async function handleUpdateOrder(id, request, env) {
   const data = await request.json();
 
-  const orderId = data?.orderId ?? '';
+  const orderId = data?.orderId ?? "";
 
   const formData = data?.formData
-    ? typeof data.formData === 'object'
+    ? typeof data.formData === "object"
       ? JSON.stringify(data.formData)
       : data.formData
-    : '';
+    : "";
 
   const amount = data?.amount;
   const currency = data?.currency;
@@ -218,69 +244,77 @@ async function handleUpdateOrder(id, request, env) {
   const values: any[] = [];
 
   if (formData) {
-    fieldsToUpdate.push('formData = ?');
+    fieldsToUpdate.push("formData = ?");
     values.push(formData);
   }
   if (amount !== undefined) {
-    fieldsToUpdate.push('amount = ?');
+    fieldsToUpdate.push("amount = ?");
     values.push(amount);
   }
   if (paymentIntentId) {
-    fieldsToUpdate.push('paymentIntentId = ?');
+    fieldsToUpdate.push("paymentIntentId = ?");
     values.push(paymentIntentId);
   }
   if (paymentStatus) {
-    fieldsToUpdate.push('paymentStatus = ?');
+    fieldsToUpdate.push("paymentStatus = ?");
     values.push(paymentStatus);
   }
   if (paymentMethod) {
-    fieldsToUpdate.push('paymentMethod = ?');
+    fieldsToUpdate.push("paymentMethod = ?");
     values.push(paymentMethod);
   }
   if (paypalCaptureId) {
-    fieldsToUpdate.push('paypalCaptureId = ?');
+    fieldsToUpdate.push("paypalCaptureId = ?");
     values.push(paypalCaptureId);
   }
 
-
   if (fieldsToUpdate.length > 0) {
-    fieldsToUpdate.push('updatedAt = CURRENT_TIMESTAMP');
+    fieldsToUpdate.push("updatedAt = CURRENT_TIMESTAMP");
     values.push(id);
 
-    const query = `UPDATE orders SET ${fieldsToUpdate.join(', ')} WHERE orderId = ?`;
+    const query = `UPDATE orders SET ${fieldsToUpdate.join(
+      ", "
+    )} WHERE orderId = ?`;
 
-    await env.DB.prepare(query).bind(...values).run();
+    await env.DB.prepare(query)
+      .bind(...values)
+      .run();
   }
 
-
-
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+  return new Response(JSON.stringify({ success: true }), {
+    headers: corsHeaders,
+  });
 }
 
 async function handleUpdateTransaction(orderId, request, env) {
   const json = (obj, status = 200) =>
     new Response(JSON.stringify(obj), {
       status,
-      headers: { 'content-type': 'application/json', ...(corsHeaders || {}) },
+      headers: { "content-type": "application/json", ...(corsHeaders || {}) },
     });
 
   try {
-    if (!orderId) return json({ error: 'orderId required' }, 400);
+    if (!orderId) return json({ error: "orderId required" }, 400);
 
     const data = await request.json().catch(() => ({}));
 
     // Map backend fields → DB columns
-    const paymentStatus = (data.status ?? data.paymentStatus) ?? 'pending';
-    const paymentMethod = (data.method ?? data.paymentMethod) ?? 'cash free';
-    const amount        = data.amount !== undefined ? (Number(data.amount) || 0) : 0;
-    const currency      = data.currency ?? 'INR';
+    const paymentStatus = data.status ?? data.paymentStatus ?? "pending";
+    const paymentMethod = data.method ?? data.paymentMethod ?? "cash free";
+    const amount = data.amount !== undefined ? Number(data.amount) || 0 : 0;
+    const currency = data.currency ?? "INR";
 
-    const formData =
-      data.formData
-        ? (typeof data.formData === 'object'
-            ? (() => { try { return JSON.stringify(data.formData); } catch { return ''; } })()
-            : String(data.formData))
-        : '';
+    const formData = data.formData
+      ? typeof data.formData === "object"
+        ? (() => {
+            try {
+              return JSON.stringify(data.formData);
+            } catch {
+              return "";
+            }
+          })()
+        : String(data.formData)
+      : "";
 
     // INSERT ONLY
     const sql = `
@@ -290,19 +324,22 @@ async function handleUpdateTransaction(orderId, request, env) {
       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `;
 
-    await env.DB.prepare(sql).bind(
-      orderId, formData, amount, currency, paymentMethod, paymentStatus
-    ).run();
+    await env.DB.prepare(sql)
+      .bind(orderId, formData, amount, currency, paymentMethod, paymentStatus)
+      .run();
 
     return json({ success: true });
   } catch (err) {
     const msg = String(err?.message || err);
 
     // Nice duplicate-key message if order already exists
-    if (msg.includes('UNIQUE constraint failed') || msg.includes('constraint failed')) {
-      return json({ error: 'orderId already exists' }, 409);
+    if (
+      msg.includes("UNIQUE constraint failed") ||
+      msg.includes("constraint failed")
+    ) {
+      return json({ error: "orderId already exists" }, 409);
     }
-    return json({ error: 'Worker exception', message: msg }, 500);
+    return json({ error: "Worker exception", message: msg }, 500);
   }
 }
 
@@ -325,16 +362,21 @@ async function handleUpdateTransactionu(orderId, request, env) {
       return Number.isFinite(n) ? n : null;
     };
 
-    const paymentStatus = (body.status ?? body.paymentStatus) ?? "pending";
-    const paymentMethod = (body.method ?? body.paymentMethod) ?? "cash free";
-    const amount        = body.amount !== undefined ? (Number(body.amount) || 0) : 0;
-    const currency      = body.currency ?? "INR";
-    const formData =
-      body.formData
-        ? (typeof body.formData === "object"
-            ? (() => { try { return JSON.stringify(body.formData); } catch { return ""; } })()
-            : String(body.formData))
-        : "";
+    const paymentStatus = body.status ?? body.paymentStatus ?? "pending";
+    const paymentMethod = body.method ?? body.paymentMethod ?? "cash free";
+    const amount = body.amount !== undefined ? Number(body.amount) || 0 : 0;
+    const currency = body.currency ?? "INR";
+    const formData = body.formData
+      ? typeof body.formData === "object"
+        ? (() => {
+            try {
+              return JSON.stringify(body.formData);
+            } catch {
+              return "";
+            }
+          })()
+        : String(body.formData)
+      : "";
     const doctor_id = toNum(body.doctor_id);
 
     const sqlUpdate = `
@@ -349,9 +391,17 @@ async function handleUpdateTransactionu(orderId, request, env) {
         doctor_id     = ?
       WHERE orderId   = ?
     `;
-    const ures = await env.DB.prepare(sqlUpdate).bind(
-      formData, amount, currency, paymentMethod, paymentStatus, doctor_id, id
-    ).run();
+    const ures = await env.DB.prepare(sqlUpdate)
+      .bind(
+        formData,
+        amount,
+        currency,
+        paymentMethod,
+        paymentStatus,
+        doctor_id,
+        id
+      )
+      .run();
     const updated = ures?.meta?.changes ?? ures?.changes ?? 0;
 
     if (updated > 0) {
@@ -364,68 +414,88 @@ async function handleUpdateTransactionu(orderId, request, env) {
       )
       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
     `;
-    const ires = await env.DB.prepare(sqlInsert).bind(
-      id, formData, amount, currency, paymentMethod, paymentStatus, doctor_id
-    ).run();
+    const ires = await env.DB.prepare(sqlInsert)
+      .bind(
+        id,
+        formData,
+        amount,
+        currency,
+        paymentMethod,
+        paymentStatus,
+        doctor_id
+      )
+      .run();
 
     return json({
       success: true,
       action: "insert",
-      affected: ires?.meta?.changes ?? ires?.changes ?? 0
+      affected: ires?.meta?.changes ?? ires?.changes ?? 0,
     });
-
   } catch (err) {
-    return json({ error: "Worker exception", message: String(err?.message || err) }, 500);
+    return json(
+      { error: "Worker exception", message: String(err?.message || err) },
+      500
+    );
   }
 }
 
-
 async function handleDeleteOrder(id, env) {
-  await env.DB.prepare('DELETE FROM orders WHERE orderId = ?').bind(id).run();
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+  await env.DB.prepare("DELETE FROM orders WHERE orderId = ?").bind(id).run();
+  return new Response(JSON.stringify({ success: true }), {
+    headers: corsHeaders,
+  });
 }
 
 // Refunds handlers
 async function handleGetAllRefunds(env) {
-  const { results } = await env.DB.prepare('SELECT * FROM refunds ORDER BY refunded_at DESC').all();
+  const { results } = await env.DB.prepare(
+    "SELECT * FROM refunds ORDER BY refunded_at DESC"
+  ).all();
   return new Response(JSON.stringify(results), { headers: corsHeaders });
 }
 
 async function handleGetOneRefund(id, env) {
-  const result = await env.DB.prepare('SELECT * FROM refunds WHERE id = ?').bind(id).first();
+  const result = await env.DB.prepare("SELECT * FROM refunds WHERE id = ?")
+    .bind(id)
+    .first();
   return new Response(JSON.stringify(result), { headers: corsHeaders });
 }
 
 async function handleCreateRefund(request, env) {
   const data = await request.json();
 
-  const orderId = data.orderId ?? '';
+  const orderId = data.orderId ?? "";
   const refundedBy = data.refundedBy ?? 0;
-  const reason = data.reason ?? '';
-  const paypalRefundId = data.paypalRefundId ?? '';
-
+  const reason = data.reason ?? "";
+  const paypalRefundId = data.paypalRefundId ?? "";
 
   await env.DB.prepare(
     `INSERT INTO refunds (order_id, refunded_by, reason, paypal_refund_id, refunded_at)
      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`
-  ).bind(orderId, refundedBy, reason, paypalRefundId).run();
+  )
+    .bind(orderId, refundedBy, reason, paypalRefundId)
+    .run();
 
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+  return new Response(JSON.stringify({ success: true }), {
+    headers: corsHeaders,
+  });
 }
-
 
 async function handleDeleteRefund(id, env) {
-  await env.DB.prepare('DELETE FROM refunds WHERE id = ?').bind(id).run();
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+  await env.DB.prepare("DELETE FROM refunds WHERE id = ?").bind(id).run();
+  return new Response(JSON.stringify({ success: true }), {
+    headers: corsHeaders,
+  });
 }
 
-
 async function handleGetTodayRefundCount(env) {
-  const row = await env.DB.prepare(`
+  const row = await env.DB.prepare(
+    `
     SELECT COUNT(*) as count
     FROM refunds
     WHERE DATE(refunded_at) = DATE('now')
-  `).first();
+  `
+  ).first();
   console.log(row);
   let refundCount = 0;
   let limitReached = false;
@@ -438,11 +508,9 @@ async function handleGetTodayRefundCount(env) {
     limitReached = refundCount >= 30;
   }
 
-
-  return new Response(
-    JSON.stringify({ refundCount, limitReached }),
-    { headers: corsHeaders }
-  );
+  return new Response(JSON.stringify({ refundCount, limitReached }), {
+    headers: corsHeaders,
+  });
 }
 
 //doctors handlers
@@ -451,23 +519,27 @@ async function handleCreateDoctor(request, env) {
   const data = await request.json();
   await env.DB.prepare(
     `INSERT INTO doctors (firstname, lastname, phone, email, signature, userName, password, regnumber, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    data.firstname ?? '',
-    data.lastname ?? '',
-    data.phone ?? '',
-    data.email ?? '',
-    data.signature ?? '',
-    data.userName ?? '',
-    data.password ?? '',
-    data.regNumber ?? '',
-    data.specialty ?? '',
-  ).run();
+  )
+    .bind(
+      data.firstname ?? "",
+      data.lastname ?? "",
+      data.phone ?? "",
+      data.email ?? "",
+      data.signature ?? "",
+      data.userName ?? "",
+      data.password ?? "",
+      data.regNumber ?? "",
+      data.specialty ?? ""
+    )
+    .run();
 
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+  return new Response(JSON.stringify({ success: true }), {
+    headers: corsHeaders,
+  });
 }
 
 async function handleGetAllDoctors(env) {
-  const { results } = await env.DB.prepare('SELECT * FROM doctors').all();
+  const { results } = await env.DB.prepare("SELECT * FROM doctors").all();
   console.log(results);
   return new Response(JSON.stringify(results), { headers: corsHeaders });
 }
@@ -486,20 +558,34 @@ async function handleGetAllDoctors(env) {
 
 async function handleUpdateDoctorInfo(doctorId, request, env) {
   try {
-    const ct = request.headers.get('content-type') || '';
-    if (!ct.includes('application/json')) {
-      return new Response(JSON.stringify({ error: 'Content-Type must be application/json' }), { status: 415, headers: corsHeaders });
+    const ct = request.headers.get("content-type") || "";
+    if (!ct.includes("application/json")) {
+      return new Response(
+        JSON.stringify({ error: "Content-Type must be application/json" }),
+        { status: 415, headers: corsHeaders }
+      );
     }
 
     let body;
     try {
       body = await request.json();
     } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: corsHeaders,
+      });
     }
 
-
-    const allow = ['firstname','lastname','phone','email','userName','password', 'regnumber', 'specialty'];
+    const allow = [
+      "firstname",
+      "lastname",
+      "phone",
+      "email",
+      "userName",
+      "password",
+      "regnumber",
+      "specialty",
+    ];
     const fields = [];
     const values = [];
 
@@ -511,161 +597,201 @@ async function handleUpdateDoctorInfo(doctorId, request, env) {
     }
 
     if (fields.length === 0) {
-      return new Response(JSON.stringify({ error: 'No updatable fields provided' }), { status: 400, headers: corsHeaders });
+      return new Response(
+        JSON.stringify({ error: "No updatable fields provided" }),
+        { status: 400, headers: corsHeaders }
+      );
     }
 
     const idNum = Number(doctorId);
     if (Number.isNaN(idNum)) {
-      return new Response(JSON.stringify({ error: 'doctor_id must be a number' }), { status: 400, headers: corsHeaders });
+      return new Response(
+        JSON.stringify({ error: "doctor_id must be a number" }),
+        { status: 400, headers: corsHeaders }
+      );
     }
 
     values.push(idNum);
 
-    const sql = `UPDATE doctors SET ${fields.join(', ')} WHERE doctor_id = ?`;
-    const res = await env.DB.prepare(sql).bind(...values).run();
+    const sql = `UPDATE doctors SET ${fields.join(", ")} WHERE doctor_id = ?`;
+    const res = await env.DB.prepare(sql)
+      .bind(...values)
+      .run();
 
     if (!res?.meta || res.meta.changes === 0) {
-      return new Response(JSON.stringify({ error: 'Doctor not found' }), { status: 404, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Doctor not found" }), {
+        status: 404,
+        headers: corsHeaders,
+      });
     }
 
-    return new Response(JSON.stringify({ success: true, changed: res.meta.changes }), { headers: corsHeaders });
+    return new Response(
+      JSON.stringify({ success: true, changed: res.meta.changes }),
+      { headers: corsHeaders }
+    );
   } catch (e) {
-    console.error('handleUpdateDoctorInfo failed:', e);
-    return new Response(JSON.stringify({ error: 'UPDATE_DOCTOR_FAILED' }), { status: 500, headers: corsHeaders });
+    console.error("handleUpdateDoctorInfo failed:", e);
+    return new Response(JSON.stringify({ error: "UPDATE_DOCTOR_FAILED" }), {
+      status: 500,
+      headers: corsHeaders,
+    });
   }
 }
 
 async function handleUpdateDoctor(request, env) {
-
   try {
-    const ct = request.headers.get('content-type') || '';
-    if (!ct.includes('application/json')) {
-      return new Response(JSON.stringify({ error: 'Content-Type must be application/json' }), {
-        status: 415,
-        headers: corsHeaders,
-      });
+    const ct = request.headers.get("content-type") || "";
+    if (!ct.includes("application/json")) {
+      return new Response(
+        JSON.stringify({ error: "Content-Type must be application/json" }),
+        {
+          status: 415,
+          headers: corsHeaders,
+        }
+      );
     }
 
     let data;
     try {
       data = await request.json();
     } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
         headers: corsHeaders,
       });
     }
 
     let { doctor_id, signature } = data || {};
-    if (doctor_id == null || signature == null || signature === '') {
-      return new Response(JSON.stringify({ error: 'doctor_id and signature are required' }), {
-        status: 400,
-        headers: corsHeaders,
-      });
-    }
-
-    if (typeof doctor_id === 'string' && doctor_id.trim() !== '') {
-      const n = Number(doctor_id);
-      if (Number.isNaN(n)) {
-        return new Response(JSON.stringify({ error: 'doctor_id must be a number' }), {
+    if (doctor_id == null || signature == null || signature === "") {
+      return new Response(
+        JSON.stringify({ error: "doctor_id and signature are required" }),
+        {
           status: 400,
           headers: corsHeaders,
-        });
+        }
+      );
+    }
+
+    if (typeof doctor_id === "string" && doctor_id.trim() !== "") {
+      const n = Number(doctor_id);
+      if (Number.isNaN(n)) {
+        return new Response(
+          JSON.stringify({ error: "doctor_id must be a number" }),
+          {
+            status: 400,
+            headers: corsHeaders,
+          }
+        );
       }
       doctor_id = n;
     }
 
-    if (!env.DB?.prepare) throw new Error('D1 binding "DB" missing on this environment');
+    if (!env.DB?.prepare)
+      throw new Error('D1 binding "DB" missing on this environment');
 
-    const res = await env.DB
-      .prepare('UPDATE doctors SET signature = ? WHERE doctor_id = ?')
+    const res = await env.DB.prepare(
+      "UPDATE doctors SET signature = ? WHERE doctor_id = ?"
+    )
       .bind(signature, doctor_id)
       .run();
 
     const changed = res?.meta?.changes ?? 0;
     if (changed === 0) {
-      return new Response(JSON.stringify({ error: 'Doctor not found', doctor_id }), {
-        status: 404,
-        headers: corsHeaders,
-      });
+      return new Response(
+        JSON.stringify({ error: "Doctor not found", doctor_id }),
+        {
+          status: 404,
+          headers: corsHeaders,
+        }
+      );
     }
 
-    return new Response(JSON.stringify({ success: true, changed }), { headers: corsHeaders });
+    return new Response(JSON.stringify({ success: true, changed }), {
+      headers: corsHeaders,
+    });
   } catch (e) {
-    console.error('handleUpdateDoctor failed:', e?.stack || e);
+    console.error("handleUpdateDoctor failed:", e?.stack || e);
     return new Response(
-      JSON.stringify({ error: 'UPDATE_SIGNATURE_FAILED', detail: String(e?.message || e) }),
+      JSON.stringify({
+        error: "UPDATE_SIGNATURE_FAILED",
+        detail: String(e?.message || e),
+      }),
       { status: 500, headers: corsHeaders }
     );
   }
 }
 
-
 // Admins handlers
 async function handleGetAllAdmins(env) {
-  const { results } = await env.DB.prepare('SELECT * FROM admins').all();
+  const { results } = await env.DB.prepare("SELECT * FROM admins").all();
   console.log(results);
   return new Response(JSON.stringify(results), { headers: corsHeaders });
 }
 
 async function handleGetOneAdmin(id, env) {
-  const result = await env.DB.prepare('SELECT id, userName FROM admins WHERE id = ?').bind(id).first();
+  const result = await env.DB.prepare(
+    "SELECT id, userName FROM admins WHERE id = ?"
+  )
+    .bind(id)
+    .first();
   return new Response(JSON.stringify(result), { headers: corsHeaders });
 }
 
 async function handleCreateAdmin(request, env) {
   const data = await request.json();
-  await env.DB.prepare(
-    `INSERT INTO admins (userName, password) VALUES (?, ?)`
-  ).bind(
-    data.userName ?? '',
-    data.password ?? ''
-  ).run();
+  await env.DB.prepare(`INSERT INTO admins (userName, password) VALUES (?, ?)`)
+    .bind(data.userName ?? "", data.password ?? "")
+    .run();
 
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+  return new Response(JSON.stringify({ success: true }), {
+    headers: corsHeaders,
+  });
 }
 
 async function handleUpdateAdmin(id, request, env) {
   const data = await request.json();
   await env.DB.prepare(
     `UPDATE admins SET userName = ?, password = ? WHERE id = ?`
-  ).bind(
-    data.userName ?? '',
-    data.password ?? '',
-    id
-  ).run();
+  )
+    .bind(data.userName ?? "", data.password ?? "", id)
+    .run();
 
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+  return new Response(JSON.stringify({ success: true }), {
+    headers: corsHeaders,
+  });
 }
 
 async function handleDeleteAdmin(id, env) {
-  await env.DB.prepare('DELETE FROM admins WHERE id = ?').bind(id).run();
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+  await env.DB.prepare("DELETE FROM admins WHERE id = ?").bind(id).run();
+  return new Response(JSON.stringify({ success: true }), {
+    headers: corsHeaders,
+  });
 }
 
 async function handleDoctorLoginLookup(userName, env) {
   if (!userName) {
-    return new Response(
-      JSON.stringify({ error: 'userName is required' }),
-      { status: 400, headers: corsHeaders }
-    );
+    return new Response(JSON.stringify({ error: "userName is required" }), {
+      status: 400,
+      headers: corsHeaders,
+    });
   }
 
-  const row = await env.DB
-    .prepare(`
+  const row = await env.DB.prepare(
+    `
       SELECT *
       FROM doctors
       WHERE LOWER(userName) = LOWER(?)
       LIMIT 1
-    `)
+    `
+  )
     .bind(userName)
     .first();
 
   if (!row) {
-    return new Response(
-      JSON.stringify({ error: 'Doctor not found' }),
-      { status: 404, headers: corsHeaders }
-    );
+    return new Response(JSON.stringify({ error: "Doctor not found" }), {
+      status: 404,
+      headers: corsHeaders,
+    });
   }
 
   const payload = {
